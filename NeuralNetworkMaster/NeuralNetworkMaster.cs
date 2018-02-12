@@ -38,9 +38,8 @@ namespace NeuralNetworkMaster
                 stream.ReadLine();
                 lines++;
             }
-            stream.BaseStream.Position = 0;
-            stream.DiscardBufferedData();
-
+            stream.Close();
+            stream = new StreamReader(path);
             int numberOfLines = (int)lines / numberOfSlaves;
             int remainderLines = lines % numberOfSlaves;
 
@@ -95,14 +94,14 @@ namespace NeuralNetworkMaster
         public void Master()
         {
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
-            y_value = SplitDataSet("Y_value.csv", NumberOfSlaves);
+            X_value = SplitDataSet("X_mini.csv", NumberOfSlaves);
+            y_value = SplitDataSet("Y_mini.csv", NumberOfSlaves);
 
 
             test(X_value[0]);
-            test(X_value[1]);
+            //test(X_value[1]);
             test(y_value[0]);
-            test(y_value[1]);
+            //test(y_value[1]);
 
             var thread = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
@@ -162,12 +161,12 @@ namespace NeuralNetworkMaster
         private void SendDataSet(StreamWriter streamWriter,String dataSet)
         {
             int i = 0;
-            int rem = dataSet.Length % 10240;
+            int rem = dataSet.Length % 1024;
             streamWriter.WriteLine(dataSet.Length);
-            while (i < (dataSet.Length - 10240))
+            while (i < (dataSet.Length - 1024))
             {
-                streamWriter.Write(dataSet.Substring(i, 10240));
-                i += 10240;
+                streamWriter.Write(dataSet.Substring(i, 1024));
+                i += 1024;
             }
             streamWriter.Write(dataSet.Substring(i, rem));
         }
