@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -94,8 +95,8 @@ namespace NeuralNetworkMaster
         public void Master()
         {
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet("X_mini.csv", NumberOfSlaves);
-            y_value = SplitDataSet("Y_mini.csv", NumberOfSlaves);
+            X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
+            y_value = SplitDataSet("Y_value.csv", NumberOfSlaves);
 
 
             test(X_value[0]);
@@ -124,8 +125,7 @@ namespace NeuralNetworkMaster
                 StreamWriter streamWriter = new StreamWriter(stream);
 
                 streamWriter.AutoFlush = true;
-
-                SendInitialData(streamWriter, slaveNumber);
+                SendInitialData(streamWriter,stream, slaveNumber);
 
                 Console.WriteLine(streamReader.ReadLine() + " Slave " + slaveNumber);
                 var x = Console.ReadLine();
@@ -144,33 +144,57 @@ namespace NeuralNetworkMaster
         }
 
 
-        private void SendInitialData(StreamWriter streamWriter, int slaveNumber)
+        private void SendInitialData(StreamWriter streamWriter,Stream stream, int slaveNumber)
         {
-            streamWriter.WriteLine(InputLayerSize);
-            streamWriter.WriteLine(HiddenLayerSize);
-            streamWriter.WriteLine(HiddenLayerLength);
-            streamWriter.WriteLine(OutputLayerSize);
-            streamWriter.WriteLine(TrainingSizes[slaveNumber]);
-            streamWriter.WriteLine(Lambda);
-            streamWriter.WriteLine(Epoch);
-            SendDataSet(streamWriter, X_value[slaveNumber]);
-            SendDataSet(streamWriter, y_value[slaveNumber]);
+            NeuralNetworkCom neuralNetworkCom = new NeuralNetworkCom
+            {
+                InputLayerSize = InputLayerSize,
+                HiddenLayerSize = HiddenLayerSize,
+                HiddenLayerLength = HiddenLayerLength,
+                OutputLayerSize = OutputLayerSize,
+                TrainingSize = TrainingSizes[slaveNumber],
+                Lambda = Lambda,
+                Epoch = Epoch,
+                XDataSize = X_value[slaveNumber].Length,
+                YDataSize = y_value[slaveNumber].Length
+            };
+
+            string output = JsonConvert.SerializeObject(neuralNetworkCom);
+            var bytes = Encoding.ASCII.GetBytes(output);
+            stream.Write(bytes, 0, bytes.Length);
+            ReceiveOk(stream);
+            SendDataSet(streamWriter,stream ,X_value[slaveNumber]);
+            ReceiveOk(stream);
+            SendDataSet(streamWriter,stream, y_value[slaveNumber]);
+            ReceiveOk(stream);
         }
 
 
-        private void SendDataSet(StreamWriter streamWriter,String dataSet)
+        private void SendDataSet(StreamWriter streamWriter, Stream stream, String dataSet)
         {
             int i = 0;
             int rem = dataSet.Length % 1024;
-            streamWriter.WriteLine(dataSet.Length);
             while (i < (dataSet.Length - 1024))
             {
-                streamWriter.Write(dataSet.Substring(i, 1024));
+                byte[] msg = Encoding.ASCII.GetBytes(dataSet.Substring(i, 1024));
+                stream.Write(msg, 0, 1024);
                 i += 1024;
             }
-            streamWriter.Write(dataSet.Substring(i, rem));
+            byte[] msg2 = Encoding.ASCII.GetBytes(dataSet.Substring(i, rem));
+            stream.Write(msg2, 0, msg2.Length);
         }
-       
+
+
+        private static void ReceiveOk(Stream stream)
+        {
+            var recBytes = new byte[2];
+            stream.Read(recBytes, 0, recBytes.Length);
+            
+            if (!(Encoding.ASCII.GetString(recBytes) == "Ok"))
+            {
+                throw new Exception("Ok Not received");
+            }
+        }
     }
 
  
