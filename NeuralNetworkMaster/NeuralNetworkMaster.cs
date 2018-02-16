@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,11 +20,13 @@ namespace NeuralNetworkMaster
         public double Lambda { get; set; }
         public int Epoch { get; set; }
         //private TcpListener tcpListener;
-        private String[] X_value;
+        public String[] X_value;
+        public String[] y_value;
+        public int []TrainingSizes;
 
-        private String[] y_value;
-        private int []TrainingSizes;
-
+        public Matrix<double>[][] Thetas;
+        public Matrix<double>[] AverageTheta; 
+        private Thread[] threads;
         public NeuralNetworkMaster()
         {
             
@@ -72,37 +75,25 @@ namespace NeuralNetworkMaster
             TrainingSizes[NumberOfSlaves - 1] = numberOfLines;
             return dataSet;
         }
-
-        public void test(String s)
+        public static void WriteCsv(string path, Matrix<double> matrix)
         {
-            var lines = new List<double[]>();
-            var Data = s.Split("\n");
-            Console.WriteLine("DataLength =" + Data.Length);
-            for (int i = 0; i < Data.Length; i++)
+            StreamWriter stream = new StreamWriter(path);
+
+            for (int i = 0; i < matrix.RowCount; i++)
             {
-                string[] line = Data[i].Split(',');
-                var lineValues = new double[line.Length];
-                lineValues = line.Select(e => Convert.ToDouble(e)).ToArray();
-                lines.Add(lineValues);
+                var result = string.Join(",", matrix.Row(i).ToArray());
+                stream.WriteLine(result);
             }
-
-            var data = lines.ToArray();
-
+            stream.Close();
         }
-
-
 
         public void Master()
         {
+            Thetas = new Matrix<double>[NumberOfSlaves][];
+            AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
             X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
             y_value = SplitDataSet("Y_value.csv", NumberOfSlaves);
-
-
-            test(X_value[0]);
-            //test(X_value[1]);
-            test(y_value[0]);
-            //test(y_value[1]);
 
             var thread = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
@@ -111,6 +102,22 @@ namespace NeuralNetworkMaster
                 thread[i] = new Thread(() => Service("127.0.0.1", 6000+slaveNumber, slaveNumber));
                 thread[i].Start();
             }
+
+            foreach(var t in thread)
+            {
+                t.Join();
+            }
+            for (int i = 0; i < (HiddenLayerLength+1); i++)
+            {
+                AverageTheta[i] = Thetas[0][i].Clone();
+                for (int j = 1; j < NumberOfSlaves; j++)
+                    AverageTheta[i] = AverageTheta[i] + Thetas[j][i];
+
+                AverageTheta[i] = AverageTheta[i] / NumberOfSlaves;
+                WriteCsv("Theata" + i +".csv", AverageTheta[i]);    
+            }
+
+            
         }
 
         public void Service(String ip, int port, int slaveNumber)
@@ -120,15 +127,13 @@ namespace NeuralNetworkMaster
             try
             {
                 Stream stream = client.GetStream();
-
-                StreamReader streamReader = new StreamReader(stream);
-                StreamWriter streamWriter = new StreamWriter(stream);
-
-                streamWriter.AutoFlush = true;
-                SendInitialData(streamWriter,stream, slaveNumber);
-
-                Console.WriteLine(streamReader.ReadLine() + " Slave " + slaveNumber);
-                var x = Console.ReadLine();
+                SendInitialData(stream, slaveNumber);
+                var ThetaSize = int.Parse(GetJSONData(stream));
+                var s = GetDataSet(stream, ThetaSize);
+                var Theta = JsonConvert.DeserializeObject<double[][,]>(s);
+                Thetas[slaveNumber] = new Matrix<double>[HiddenLayerLength + 1];
+                for (int i = 0; i < Theta.Length; i++)
+                    Thetas[slaveNumber][i] = Matrix<double>.Build.Dense(Theta[i].GetLength(0), Theta[i].GetLength(1), (x, y) => (Theta[i][x, y]));
             }
             catch (Exception E)
             {
@@ -143,10 +148,33 @@ namespace NeuralNetworkMaster
 
         }
 
-
-        private void SendInitialData(StreamWriter streamWriter,Stream stream, int slaveNumber)
+        public string GetDataSet(Stream stream,int filesize)
         {
-            NeuralNetworkCom neuralNetworkCom = new NeuralNetworkCom
+            var buffer = new byte[1024];
+            var lines = new List<double[]>();
+            int receivedSize = 0;
+            int bytesReceived;
+            StringBuilder stringBuilder = new StringBuilder(filesize);
+
+            while (receivedSize < (filesize) && (bytesReceived = stream.Read(buffer, 0, 1024)) != 0)
+            {
+                String msg = Encoding.ASCII.GetString(buffer, 0, bytesReceived);
+                stringBuilder.Append(msg, 0, bytesReceived);
+                receivedSize += bytesReceived;
+                Console.WriteLine(receivedSize);
+            }
+            SendOk(stream);
+            return stringBuilder.ToString();
+        }
+
+
+
+
+
+
+        private void SendInitialData(Stream stream, int slaveNumber)
+        {
+            NeuralNetworkSlaveParameters neuralNetworkCom = new NeuralNetworkSlaveParameters
             {
                 InputLayerSize = InputLayerSize,
                 HiddenLayerSize = HiddenLayerSize,
@@ -163,14 +191,14 @@ namespace NeuralNetworkMaster
             var bytes = Encoding.ASCII.GetBytes(output);
             stream.Write(bytes, 0, bytes.Length);
             ReceiveOk(stream);
-            SendDataSet(streamWriter,stream ,X_value[slaveNumber]);
+            SendDataSet(stream ,X_value[slaveNumber]);
             ReceiveOk(stream);
-            SendDataSet(streamWriter,stream, y_value[slaveNumber]);
+            SendDataSet(stream, y_value[slaveNumber]);
             ReceiveOk(stream);
         }
 
 
-        private void SendDataSet(StreamWriter streamWriter, Stream stream, String dataSet)
+        private void SendDataSet(Stream stream, String dataSet)
         {
             int i = 0;
             int rem = dataSet.Length % 1024;
@@ -184,6 +212,14 @@ namespace NeuralNetworkMaster
             stream.Write(msg2, 0, msg2.Length);
         }
 
+        public String GetJSONData(Stream stream)
+        {
+            var bytes = new byte[1024];
+            int received = stream.Read(bytes, 0, 1024);
+            SendOk(stream);
+            return Encoding.ASCII.GetString(bytes, 0, received);
+        }
+
 
         private static void ReceiveOk(Stream stream)
         {
@@ -194,6 +230,12 @@ namespace NeuralNetworkMaster
             {
                 throw new Exception("Ok Not received");
             }
+        }
+
+        private void SendOk(Stream stream)
+        {
+            var bytes = Encoding.ASCII.GetBytes("Ok");
+            stream.Write(bytes, 0, bytes.Length);
         }
     }
 
