@@ -31,7 +31,6 @@ namespace NeuralNetworkMaster
             }
         }
 
-
         public Matrix<double>[] BuildTheta(int hiddenLayerLength)
         {
             var thetaSize = int.Parse(communicationLayer.ReceiveData());

@@ -24,8 +24,8 @@ namespace NeuralNetworkMaster
         public String[] y_value;
         public int []TrainingSizes;
 
-        public Matrix<double>[][] SlaveThetas;
-        public Matrix<double>[] AverageTheta; 
+        public Matrix<double>[][] ThetaSlaves;
+        public Matrix<double>[] AverageTheta;
 
         public NeuralNetworkMaster()
         {
@@ -34,45 +34,22 @@ namespace NeuralNetworkMaster
 
         public String[] SplitDataSet(string path, int numberOfSlaves)
         {
-            StreamReader stream = new StreamReader(path);
+            FileAccess fileAccess = new FileAccess(path);
             string[] dataSet = new string[numberOfSlaves];
-            int lines = 0;
-            while (!stream.EndOfStream)
-            {
-                stream.ReadLine();
-                lines++;
-            }
-            stream.Close();
-            stream = new StreamReader(path);
-            int numberOfLines = (int)lines / numberOfSlaves;
-            int remainderLines = lines % numberOfSlaves;
 
-            for (int i = 0; i < numberOfSlaves - 1; i++)
+            int numberOfLines = (int)fileAccess.Lines / numberOfSlaves;
+            int numberOfLinesLastSlave = numberOfLines + fileAccess.Lines % numberOfSlaves;
+
+            fileAccess.OpenStream();
+            for (int i = 0; i < numberOfSlaves-1; i++)
             {
-                StringBuilder stringBuilder = new StringBuilder(numberOfLines);
-                for (int j = 0; j < numberOfLines-1; j++)
-                {
-                    stringBuilder.AppendLine(stream.ReadLine());
-                }
-                stringBuilder.Append(stream.ReadLine());
-                dataSet[i] = stringBuilder.ToString();
+                dataSet[i] = fileAccess.ReadNextLines(numberOfLines);
                 TrainingSizes[i] = numberOfLines;
-
-
-            }
-            StringBuilder stringBuilderLast = new StringBuilder(remainderLines*1000);
-            while (!stream.EndOfStream)
-            {
-                numberOfLines = numberOfLines + remainderLines;
-                for (int j = 0; j < numberOfLines - 1; j++)
-                {
-                    stringBuilderLast.AppendLine(stream.ReadLine());
-                }
-                stringBuilderLast.Append(stream.ReadLine());
             }
 
-            dataSet[numberOfSlaves - 1] = stringBuilderLast.ToString();
-            TrainingSizes[NumberOfSlaves - 1] = numberOfLines;
+            dataSet[numberOfSlaves - 1] = fileAccess.ReadNextLines(numberOfLinesLastSlave) ;
+            TrainingSizes[NumberOfSlaves - 1] = numberOfLinesLastSlave;
+            fileAccess.CloseStream();
             return dataSet;
         }
 
@@ -88,9 +65,12 @@ namespace NeuralNetworkMaster
             stream.Close();
         }
 
+
+
+
         public void Master()
         {
-            SlaveThetas = new Matrix<double>[NumberOfSlaves][];
+            ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
             X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
@@ -110,9 +90,9 @@ namespace NeuralNetworkMaster
             }
             for (int i = 0; i < (HiddenLayerLength+1); i++)
             {
-                AverageTheta[i] = SlaveThetas[0][i].Clone();
+                AverageTheta[i] = ThetaSlaves[0][i].Clone();
                 for (int j = 1; j < NumberOfSlaves; j++)
-                    AverageTheta[i] = AverageTheta[i] + SlaveThetas[j][i];
+                    AverageTheta[i] = AverageTheta[i] + ThetaSlaves[j][i];
 
                 AverageTheta[i] = AverageTheta[i] / NumberOfSlaves;
                 WriteCsv("Theta" + i +".csv", AverageTheta[i]);    
@@ -144,7 +124,7 @@ namespace NeuralNetworkMaster
                     ThetaSize = null
                 };
                 middleLayer.SendInitialData(slave, X_value[slaveNumber], y_value[slaveNumber], null);
-                SlaveThetas[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
+                ThetaSlaves[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
                 
             }
             catch (Exception E)

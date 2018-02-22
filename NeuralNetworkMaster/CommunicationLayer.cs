@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,15 +7,15 @@ using System.Text;
 
 namespace NeuralNetworkMaster
 {
-    class CommunicationLayer
+    internal class CommunicationLayer
     {
         private TcpClient client;
         private Stream stream;
+
         public CommunicationLayer(String ip, int port)
         {
-             client = new TcpClient(ip, port);
-             stream = client.GetStream();
-            
+            client = new TcpClient(ip, port);
+            stream = client.GetStream();
         }
 
         public String ReceiveData()
@@ -43,9 +42,6 @@ namespace NeuralNetworkMaster
             SendOk();
             return stringBuilder.ToString();
         }
-
-
-
 
         public void SendData(String str)
         {
@@ -94,7 +90,6 @@ namespace NeuralNetworkMaster
             ReceiveOk();
         }
 
-
         public void Close()
         {
             client.Close();
@@ -116,10 +111,5 @@ namespace NeuralNetworkMaster
                 throw new Exception("Ok Not received");
             }
         }
-
     }
-
-
-    
-
 }
