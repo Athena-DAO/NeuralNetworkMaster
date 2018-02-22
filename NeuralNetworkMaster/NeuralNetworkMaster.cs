@@ -65,9 +65,6 @@ namespace NeuralNetworkMaster
             stream.Close();
         }
 
-
-
-
         public void Master()
         {
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
@@ -76,31 +73,23 @@ namespace NeuralNetworkMaster
             X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
             y_value = SplitDataSet("Y_value.csv", NumberOfSlaves);
 
-            var thread = new Thread[NumberOfSlaves];
+            var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
             {
                 var slaveNumber = i;
-                thread[i] = new Thread(() => Service("127.0.0.1", 6000+slaveNumber, slaveNumber));
-                thread[i].Start();
+                threads[i] = new Thread(() => Service("127.0.0.1", 6000+slaveNumber, slaveNumber));
+                threads[i].Start();
             }
 
-            foreach(var t in thread)
+            foreach(var thread in threads)
             {
-                t.Join();
+                thread.Join();
             }
-            for (int i = 0; i < (HiddenLayerLength+1); i++)
-            {
-                AverageTheta[i] = ThetaSlaves[0][i].Clone();
-                for (int j = 1; j < NumberOfSlaves; j++)
-                    AverageTheta[i] = AverageTheta[i] + ThetaSlaves[j][i];
 
-                AverageTheta[i] = AverageTheta[i] / NumberOfSlaves;
-                WriteCsv("Theta" + i +".csv", AverageTheta[i]);    
-            }
+            ComputeThetaAvereage();
 
             
         }
-
         public void Service(String ip, int port, int slaveNumber)
         {
             CommunicationLayer communicationLayer = new CommunicationLayer(ip, port);
@@ -136,6 +125,19 @@ namespace NeuralNetworkMaster
                 communicationLayer.Close();
             }
 
+        }
+
+        private void ComputeThetaAvereage()
+        {
+            for (int i = 0; i < (HiddenLayerLength + 1); i++)
+            {
+                AverageTheta[i] = ThetaSlaves[0][i].Clone();
+                for (int j = 1; j < NumberOfSlaves; j++)
+                    AverageTheta[i] = AverageTheta[i] + ThetaSlaves[j][i];
+
+                AverageTheta[i] = AverageTheta[i] / NumberOfSlaves;
+                WriteCsv("Theta" + i + ".csv", AverageTheta[i]);
+            }
         }
     }
 
