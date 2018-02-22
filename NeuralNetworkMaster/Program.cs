@@ -14,7 +14,7 @@ namespace NeuralNetworkMaster
 
             NeuralNetworkMaster master = new NeuralNetworkMaster
             {
-                NumberOfSlaves = 2,
+                NumberOfSlaves = 1,
                 InputLayerSize = 400,
                 HiddenLayerSize = 25,
                 HiddenLayerLength = 1,

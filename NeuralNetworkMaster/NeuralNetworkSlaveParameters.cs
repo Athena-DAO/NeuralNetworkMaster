@@ -15,5 +15,7 @@ namespace NeuralNetworkMaster
         public int Epoch { get; set; }
         public int XDataSize { get; set; }
         public int YDataSize { get; set; }
+        public bool IsThetaNull { get; set; }
+        public int[] ThetaSize { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 
@@ -9,41 +10,76 @@ namespace NeuralNetworkMaster
 {
     class CommunicationLayer
     {
-
-        public CommunicationLayer(String ip, int port, int slaveNumber)
+        private TcpClient client;
+        private Stream stream;
+        public CommunicationLayer(String ip, int port)
         {
-            TcpClient client = new TcpClient(ip, port);
-            Stream stream = client.GetStream();
+             client = new TcpClient(ip, port);
+             stream = client.GetStream();
             
         }
 
-        public void SendInitialData(Stream stream,NeuralNetworkMaster master, int slaveNumber)
+        public String ReceiveData()
         {
-            NeuralNetworkSlaveParameters neuralNetworkCom = new NeuralNetworkSlaveParameters
-            {
-                InputLayerSize = master.InputLayerSize,
-                HiddenLayerSize = master.HiddenLayerSize,
-                HiddenLayerLength = master.HiddenLayerLength,
-                OutputLayerSize = master.OutputLayerSize,
-                TrainingSize = master.TrainingSizes[slaveNumber],
-                Lambda = master.Lambda,
-                Epoch = master.Epoch,
-                XDataSize = master.X_value[slaveNumber].Length,
-                YDataSize = master.y_value[slaveNumber].Length
-            };
+            var bytes = new byte[1024];
+            int received = stream.Read(bytes, 0, 1024);
+            SendOk();
+            return Encoding.ASCII.GetString(bytes, 0, received);
+        }
 
-            string output = JsonConvert.SerializeObject(neuralNetworkCom);
-            var bytes = Encoding.ASCII.GetBytes(output);
-            stream.Write(bytes, 0, bytes.Length);
-            ReceiveOk(stream);
-            SendDataSet(stream, master.X_value[slaveNumber]);
-            ReceiveOk(stream);
-            SendDataSet(stream, master.y_value[slaveNumber]);
-            ReceiveOk(stream);
+        public String ReceiveData(int filesize)
+        {
+            var buffer = new byte[1024];
+            int receivedSize = 0;
+            int bytesReceived;
+            StringBuilder stringBuilder = new StringBuilder(filesize);
+
+            while (receivedSize < (filesize) && (bytesReceived = stream.Read(buffer, 0, 1024)) != 0)
+            {
+                String msg = Encoding.ASCII.GetString(buffer, 0, bytesReceived);
+                stringBuilder.Append(msg, 0, bytesReceived);
+                receivedSize += bytesReceived;
+            }
+            SendOk();
+            return stringBuilder.ToString();
         }
 
 
-        private void SendDataSet(Stream stream, String dataSet)
+
+
+        public void SendData(String str)
+        {
+            var bytes = Encoding.ASCII.GetBytes(str);
+            stream.Write(bytes, 0, bytes.Length);
+            ReceiveOk();
+        }
+
+        public double[][] ReceiveDataSet(int filesize)
+        {
+            var buffer = new byte[1024];
+            var lines = new List<double[]>();
+            int receivedSize = 0;
+            int bytesReceived;
+            StringBuilder stringBuilder = new StringBuilder(filesize);
+
+            while (receivedSize < (filesize) && (bytesReceived = stream.Read(buffer, 0, 1024)) != 0)
+            {
+                String msg = Encoding.ASCII.GetString(buffer, 0, bytesReceived);
+                stringBuilder.Append(msg, 0, bytesReceived);
+                receivedSize += bytesReceived;
+            }
+            SendOk();
+            var Data = stringBuilder.ToString().Split("\n");
+            for (int i = 0; i < Data.Length; i++)
+            {
+                string[] line = Data[i].Split(',');
+                var lineValues = line.Select(e => Convert.ToDouble(e)).ToArray();
+                lines.Add(lineValues);
+            }
+            return lines.ToArray();
+        }
+
+        public void SendDataSet(String dataSet)
         {
             int i = 0;
             int rem = dataSet.Length % 1024;
@@ -55,10 +91,22 @@ namespace NeuralNetworkMaster
             }
             byte[] msg2 = Encoding.ASCII.GetBytes(dataSet.Substring(i, rem));
             stream.Write(msg2, 0, msg2.Length);
+            ReceiveOk();
         }
 
 
-        private static void ReceiveOk(Stream stream)
+        public void Close()
+        {
+            client.Close();
+        }
+
+        private void SendOk()
+        {
+            var bytes = Encoding.ASCII.GetBytes("Ok");
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private void ReceiveOk()
         {
             var recBytes = new byte[2];
             stream.Read(recBytes, 0, recBytes.Length);
