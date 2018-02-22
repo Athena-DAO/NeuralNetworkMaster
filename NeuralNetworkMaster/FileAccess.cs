@@ -56,5 +56,24 @@ namespace NeuralNetworkMaster
             }
 
         }
+
+        public string ReadFile()
+        {
+            lock (fileLock)
+            {
+
+                stream = new StreamReader(FileName);
+                StringBuilder stringBuilder = new StringBuilder(Lines);
+                for (int j = 0; j < Lines - 1; j++)
+                {
+                    stringBuilder.AppendLine(stream.ReadLine());
+                }
+                stringBuilder.Append(stream.ReadLine());
+                nextLine += Lines;
+                return stringBuilder.ToString();
+            }
+
+        }
+
     }
 }

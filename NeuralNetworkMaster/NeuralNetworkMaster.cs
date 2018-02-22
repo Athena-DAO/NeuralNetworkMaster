@@ -25,6 +25,7 @@ namespace NeuralNetworkMaster
         public int []TrainingSizes;
 
         public Matrix<double>[][] ThetaSlaves;
+        public string[] Theta;
         public Matrix<double>[] AverageTheta;
 
         public NeuralNetworkMaster()
@@ -88,8 +89,25 @@ namespace NeuralNetworkMaster
 
             ComputeThetaAvereage();
 
+            //Retrain();
             
         }
+
+        /*
+        public void Retrain()
+        {
+            FileAccess fileAccessTheta0 = new FileAccess("Theta0.csv");
+            FileAccess fileAccessTheta1 = new FileAccess("Theta1.csv");
+            Theta = new string[HiddenLayerLength + 1];
+
+            Theta[0] = fileAccessTheta0.ReadFile();
+            Theta[1] = fileAccessTheta1.ReadFile();
+
+            var t = new Thread(() => Service("127.0.0.1", 6000 + NumberOfSlaves, 0));
+            t.Start();
+            t.Join();
+        }
+        */
         public void Service(String ip, int port, int slaveNumber)
         {
             CommunicationLayer communicationLayer = new CommunicationLayer(ip, port);
@@ -97,22 +115,8 @@ namespace NeuralNetworkMaster
             try
             {
                 MiddleLayer middleLayer = new MiddleLayer(communicationLayer);
-
-                NeuralNetworkSlaveParameters slave = new NeuralNetworkSlaveParameters
-                {
-                    InputLayerSize = InputLayerSize,
-                    HiddenLayerSize = HiddenLayerSize,
-                    HiddenLayerLength = HiddenLayerLength,
-                    OutputLayerSize = OutputLayerSize,
-                    TrainingSize = TrainingSizes[slaveNumber],
-                    Lambda = Lambda,
-                    Epoch = Epoch,
-                    XDataSize = X_value[slaveNumber].Length,
-                    YDataSize = y_value[slaveNumber].Length,
-                    IsThetaNull = true,
-                    ThetaSize = null
-                };
-                middleLayer.SendInitialData(slave, X_value[slaveNumber], y_value[slaveNumber], null);
+                var slaveParameters= BuildSlaveParameters(slaveNumber);
+                middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
                 ThetaSlaves[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
                 
             }
@@ -125,6 +129,39 @@ namespace NeuralNetworkMaster
                 communicationLayer.Close();
             }
 
+        }
+        
+        private NeuralNetworkSlaveParameters BuildSlaveParameters(int slaveNumber)
+        {
+
+                        
+            bool isThetaNull = (Theta == null ? true : false);
+            int[] thetaSize = null;
+
+            if (!isThetaNull)
+            {
+                thetaSize = new int[HiddenLayerLength + 1];
+
+                for (int i = 0; i < (HiddenLayerLength + 1); i++)
+                {
+                    thetaSize[i] = Theta[i].Length;
+                }
+            }
+
+            return new NeuralNetworkSlaveParameters
+            {
+                InputLayerSize = InputLayerSize,
+                HiddenLayerSize = HiddenLayerSize,
+                HiddenLayerLength = HiddenLayerLength,
+                OutputLayerSize = OutputLayerSize,
+                TrainingSize = TrainingSizes[slaveNumber],
+                Lambda = Lambda,
+                Epoch = Epoch,
+                XDataSize = X_value[slaveNumber].Length,
+                YDataSize = y_value[slaveNumber].Length,
+                IsThetaNull = isThetaNull,
+                ThetaSize = thetaSize
+            };
         }
 
         private void ComputeThetaAvereage()
