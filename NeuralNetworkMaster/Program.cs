@@ -31,7 +31,7 @@ namespace NeuralNetworkMaster
                 
             };
 
-            master.Master();
+            master.Master(communicationParameter.SlaveLocations);
 
         }
     }

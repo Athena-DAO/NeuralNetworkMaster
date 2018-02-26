@@ -66,7 +66,7 @@ namespace NeuralNetworkMaster
             stream.Close();
         }
 
-        public void Master()
+        public void Master(SlaveLocation[] slaveLocations)
         {
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
@@ -78,7 +78,7 @@ namespace NeuralNetworkMaster
             for (int i = 0; i < NumberOfSlaves; i++)
             {
                 var slaveNumber = i;
-                threads[i] = new Thread(() => Service("127.0.0.1", 6000+slaveNumber, slaveNumber));
+                threads[i] = new Thread(() => Service(slaveLocations[i].IpAddress, slaveLocations[i].Port, slaveNumber));
                 threads[i].Start();
             }
 
