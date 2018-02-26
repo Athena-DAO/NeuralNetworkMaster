@@ -11,16 +11,23 @@ namespace NeuralNetworkMaster
 
         static void Main(string[] args)
         {
+            CommunicationParameter communicationParameter = JsonConvert.DeserializeObject<CommunicationParameter>(args[1]);
+            CommunicationLayer communicationLayer = new CommunicationLayer(communicationParameter.Port);
+            MiddleLayer middleLayer = new MiddleLayer(communicationLayer);
+            NeuralNetworkMasterParameters masterParameters = middleLayer.GetInitialData();
+            FtpLayer ftpLayer = new FtpLayer(masterParameters.DataSetUrl);
+            ftpLayer.DownloadFile("X.csv");
+            ftpLayer.DownloadFile("Y.csv");
 
             NeuralNetworkMaster master = new NeuralNetworkMaster
             {
-                NumberOfSlaves = 2,
-                InputLayerSize = 400,
-                HiddenLayerSize = 25,
-                HiddenLayerLength = 1,
-                OutputLayerSize = 10,
-                Lambda = 3,
-                Epoch = 50
+                NumberOfSlaves = communicationParameter.NumberOfSlaves,
+                InputLayerSize = masterParameters.InputLayerSize,
+                HiddenLayerSize = masterParameters.HiddenLayerSize,
+                HiddenLayerLength = masterParameters.HiddenLayerLength,
+                OutputLayerSize = masterParameters.OutputLayerSize,
+                Lambda = masterParameters.Lambda,
+                Epoch = masterParameters.Epoch
                 
             };
 
