@@ -15,6 +15,18 @@ namespace NeuralNetworkMaster
             this.communicationLayer = communicationLayer;
         }
 
+        public NeuralNetworkMasterParameters GetInitialData()
+        {
+            return JsonConvert.DeserializeObject<NeuralNetworkMasterParameters>(communicationLayer.ReceiveData());
+
+        }
+
+
+
+
+
+
+
         public void SendInitialData(NeuralNetworkSlaveParameters neuralNetworkSlaveParameters ,String X,String y,String[] Theta)
         {
 
