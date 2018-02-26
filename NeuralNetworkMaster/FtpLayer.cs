@@ -12,9 +12,9 @@ namespace NeuralNetworkMaster
 
 
         private FtpClient client;
-        public FtpLayer()
+        public FtpLayer(string ip)
         {
-            client = new FtpClient("127.0.0.1");
+            client = new FtpClient(ip);
 
         }
 
