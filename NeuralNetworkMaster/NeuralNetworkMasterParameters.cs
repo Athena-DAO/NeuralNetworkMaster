@@ -12,7 +12,7 @@ namespace NeuralNetworkMaster
         public int OutputLayerSize { get; set; }
         public double Lambda { get; set; }
         public int Epoch { get; set; }
-        public String XDataSetUrl { get; set; }
-        public String YDataSetUrl { get; set; }
-    }
+        public String DataSetUrl { get; set; }
+    }   
 }
+    
