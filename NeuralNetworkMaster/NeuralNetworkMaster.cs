@@ -71,8 +71,8 @@ namespace NeuralNetworkMaster
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet("X_value.csv", NumberOfSlaves);
-            y_value = SplitDataSet("Y_value.csv", NumberOfSlaves);
+            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//FileStore//X.csv", NumberOfSlaves);
+            y_value = SplitDataSet(Directory.GetCurrentDirectory() +" //FileStore//y.csv", NumberOfSlaves);
 
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
