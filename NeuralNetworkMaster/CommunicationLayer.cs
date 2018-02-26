@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -9,6 +10,8 @@ namespace NeuralNetworkMaster
 {
     internal class CommunicationLayer
     {
+        private TcpListener tcpListener;
+        private Socket socket;
         private TcpClient client;
         private Stream stream;
 
@@ -17,6 +20,28 @@ namespace NeuralNetworkMaster
             client = new TcpClient(ip, port);
             stream = client.GetStream();
         }
+        public CommunicationLayer(int portNo)
+        {
+            var Ip = new Byte[4] { 127, 0, 0, 1 };
+            try
+            {
+                tcpListener = new TcpListener(new IPAddress(Ip), portNo);
+                tcpListener.Start();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception ", e);
+            }
+        }
+
+        public void AcceptConnection()
+        {
+            socket = tcpListener.AcceptSocket();
+            Console.WriteLine("Connected to  {0}", socket.RemoteEndPoint);
+            stream = new NetworkStream(socket);
+        }
+
+
 
         public String ReceiveData()
         {
