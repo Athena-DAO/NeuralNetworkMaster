@@ -14,7 +14,7 @@ namespace NeuralNetworkMaster.Communication
         public string PipelineId { get; set; }
         public CommunicationsLayer()
         {
-            server = new CommunicationModule("192.168.1.2", 6000);
+            server = new CommunicationModule("13.232.7.234", 6000);
         }
 
         public void SendCommunicationServerParameters()

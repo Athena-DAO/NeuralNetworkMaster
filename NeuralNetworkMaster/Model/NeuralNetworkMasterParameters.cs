@@ -13,6 +13,9 @@ namespace NeuralNetworkMaster
         public double Lambda { get; set; }
         public int Epoch { get; set; }
         public String DataSetUrl { get; set; }
+        public String XFileName { get; set; }
+        public String YFileName { get; set; }
+
     }   
 }
     

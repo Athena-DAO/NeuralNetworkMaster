@@ -1,57 +1,116 @@
-﻿
-using Newtonsoft.Json;
+﻿using NeuralNetworkMaster.Model;
 using System;
 using System.IO;
-using System.Text;
-using System.Threading;
-using System.Net.Http;
 using System.Net;
+using System.Net.Http;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace NeuralNetworkMaster
 {
-    class Program
+    internal class Program
     {
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             string baseUrl = args[0];
             string pipelineId = args[1];
+            Credentials credentials = new Credentials
+            {
+                UserName = "john.doe@gmail.com",
+                Password = "P@ssw0rd"
+            };
+
+            string token = GetJWT( baseUrl + @"/Account/Login" , credentials);
+            Pipeline pipeline = GetPipeline(baseUrl,pipelineId, token);
+
+
+            Dictionary<string, string> masterParameters = BuildMasterParameters(pipeline.parameters);
+            FtpLayer ftpLayer = new FtpLayer(masterParameters["DataSetUrl"], "kishan", "lalit_123");
+           
+            ftpLayer.DownloadFile(masterParameters["XFileName"]);
+            ftpLayer.DownloadFile(masterParameters["YFileName"]);
 
             
-            /* 
-             * GET parameters from api end point 
-             * 
-             * 
-             */
-
-
-
-            //CommunicationParameter communicationParameter = JsonConvert.DeserializeObject<CommunicationParameter>(args[1]);
-            /*
-            CommunicationModule communicationLayer = new CommunicationModule(7000);
-            MiddleLayer middleLayer = new MiddleLayer(communicationLayer);
-            NeuralNetworkMasterParameters masterParameters = middleLayer.GetInitialData();
-            
-            FtpLayer ftpLayer = new FtpLayer(masterParameters.DataSetUrl);
-
-            ftpLayer.DownloadFile("X.csv");
-            ftpLayer.DownloadFile("Y.csv");
-            */
+      
             NeuralNetworkMaster master = new NeuralNetworkMaster
             {
                 PipelineId = pipelineId,
-                NumberOfSlaves = 3,
+                NumberOfSlaves = pipeline.numberOfContainers - 1,
+                InputLayerSize = int.Parse(masterParameters["InputLayerSize"]),
+                HiddenLayerSize = int.Parse(masterParameters["HiddenLayerSize"]),
+                HiddenLayerLength = int.Parse(masterParameters["HiddenLayerLength"]),
+                OutputLayerSize = int.Parse(masterParameters["OutputLayerSize"]),
+                Lambda = int.Parse(masterParameters["Lambda"]),
+                Epoch = 50
+            };
+
+
+
+            /*
+            NeuralNetworkMaster master = new NeuralNetworkMaster
+            {
+                PipelineId = pipelineId,
+                NumberOfSlaves = 2,
                 InputLayerSize = 400,
                 HiddenLayerSize = 25,
                 HiddenLayerLength = 1,
                 OutputLayerSize = 10,
                 Lambda = 3,
                 Epoch = 50
-                
             };
-
+            */
             master.Train();
+        }
 
+        private static string GetJWT(string url , Credentials credentials)
+        {
+            string jwt;
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(url);
+            httpWebRequest.ContentType = "application/json";
+            httpWebRequest.Method = "POST";
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                string json = JsonConvert.SerializeObject(credentials);
+
+
+                streamWriter.Write(json);
+                streamWriter.Flush();
+                streamWriter.Close();
+            }
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                jwt = streamReader.ReadToEnd();
+            }
+
+            return JsonConvert.DeserializeObject<Token>(jwt).token;
+        }
+
+        private static Pipeline GetPipeline(string baseUrl ,string pipelineId , string token)
+        {
+            string json;
+            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(baseUrl + @"/api/pipeline/" + pipelineId);
+            httpWebRequest.PreAuthenticate = true;
+            httpWebRequest.Headers.Add("Authorization", "Bearer " + token);
+            httpWebRequest.Accept = "application/json";
+
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                json = streamReader.ReadToEnd();
+            }
+            return JsonConvert.DeserializeObject<Pipeline>(json);
+        }
+
+        private static Dictionary<string,string> BuildMasterParameters(List<PipelineParameters> parameters)
+        {
+            Dictionary<string, string> masterParameters = new Dictionary<string, string>();
+
+            foreach(var parameter in parameters)
+            {
+                masterParameters.Add(parameter.parameterName, parameter.value);
+            }
+            return masterParameters;
         }
     }
 }
