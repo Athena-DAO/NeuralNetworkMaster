@@ -7,11 +7,14 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Net;
+using NeuralNetworkMaster.Communication;
 
 namespace NeuralNetworkMaster
 {
     internal class NeuralNetworkMaster
     {
+        public string PipelineId { get; set; }
         public int NumberOfSlaves { get; set; }
         public int InputLayerSize { get; set; }
         public int HiddenLayerSize { get; set; }
@@ -66,19 +69,19 @@ namespace NeuralNetworkMaster
             stream.Close();
         }
 
-        public void Master(SlaveLocation[] slaveLocations)
+        public void Train()
         {
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//FileStore//X.csv", NumberOfSlaves);
-            y_value = SplitDataSet(Directory.GetCurrentDirectory() +" //FileStore//y.csv", NumberOfSlaves);
+            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//X_value.csv", NumberOfSlaves);
+            y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//Y_value.csv", NumberOfSlaves);
 
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
             {
                 var slaveNumber = i;
-                threads[i] = new Thread(() => Service(slaveLocations[i].IpAddress, slaveLocations[i].Port, slaveNumber));
+                threads[i] = new Thread(() => Service(slaveNumber));
                 threads[i].Start();
             }
 
@@ -108,13 +111,49 @@ namespace NeuralNetworkMaster
             t.Join();
         }
         */
-        public void Service(String ip, int port, int slaveNumber)
+        public void Service(int slaveNumber)
         {
-            CommunicationLayer communicationLayer = new CommunicationLayer(ip, port);
 
+            /*
+        CommunicationModule clientForServer = new CommunicationModule("13.127.173.16", 6000);
+        IPEndPoint localEndPoint = clientForServer.client.Client.LocalEndPoint as IPEndPoint;
+
+        clientForServer.SendData(localEndPoint.ToString());
+        IPEndPoint peerLocalEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
+        IPEndPoint peerRemoteEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
+        clientForServer.Close();
+
+        Console.WriteLine("Remote Point {0}", peerRemoteEndPoint.ToString());
+
+        TcpHole tcpHole = new TcpHole();
+
+        TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, peerLocalEndPoint, peerRemoteEndPoint);
+        var clientForClient = new CommunicationLayer(tcpClient);
+
+        clientForClient.SendData("Hello world");
+        var str = clientForClient.ReceiveData();
+        Console.WriteLine("Received from remote device {0}", str);
+
+        Console.ReadLine();
+        */
+
+
+            CommunicationsLayer communicationLayer = new CommunicationsLayer()
+            {
+                PipelineId = PipelineId
+            };
+            communicationLayer.SendCommunicationServerParameters();
+            IPEndPoint remoteEndPoint = communicationLayer.GetPeerIPEndPoint();
+            IPEndPoint localEndPoint = communicationLayer.server.client.Client.LocalEndPoint as IPEndPoint;
+            communicationLayer.server.Close();
+
+            TcpHole tcpHole = new TcpHole();
+            TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, remoteEndPoint);
+            CommunicationModule communicationModule = new CommunicationModule(tcpClient);
+           
             try
             {
-                MiddleLayer middleLayer = new MiddleLayer(communicationLayer);
+                MiddleLayer middleLayer = new MiddleLayer(communicationModule);
                 var slaveParameters= BuildSlaveParameters(slaveNumber);
                 middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
                 ThetaSlaves[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
@@ -126,7 +165,7 @@ namespace NeuralNetworkMaster
             }
             finally
             {
-                communicationLayer.Close();
+                communicationModule.Close();
             }
 
         }

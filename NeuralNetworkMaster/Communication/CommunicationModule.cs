@@ -8,19 +8,19 @@ using System.Text;
 
 namespace NeuralNetworkMaster
 {
-    internal class CommunicationLayer
+    internal class CommunicationModule
     {
-        private TcpListener tcpListener;
-        private Socket socket;
-        private TcpClient client;
-        private Stream stream;
+        public TcpListener tcpListener;
+        public Socket socket;
+        public TcpClient client;
+        public Stream stream;
 
-        public CommunicationLayer(String ip, int port)
+        public CommunicationModule(String ip, int port)
         {
             client = new TcpClient(ip, port);
             stream = client.GetStream();
         }
-        public CommunicationLayer(int portNo)
+        public CommunicationModule(int portNo)
         {
             var Ip = new Byte[4] { 127, 0, 0, 1 };
             try
@@ -34,6 +34,12 @@ namespace NeuralNetworkMaster
             }
         }
 
+
+        public CommunicationModule(TcpClient tcpClient)
+        {
+            client = tcpClient;
+            stream = client.GetStream();
+        }
         public void AcceptConnection()
         {
             socket = tcpListener.AcceptSocket();

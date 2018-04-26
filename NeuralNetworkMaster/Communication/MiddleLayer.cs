@@ -8,9 +8,9 @@ namespace NeuralNetworkMaster
 {
     class MiddleLayer
     {
-        private CommunicationLayer communicationLayer;
+        private CommunicationModule communicationLayer;
 
-        public MiddleLayer(CommunicationLayer communicationLayer)
+        public MiddleLayer(CommunicationModule communicationLayer)
         {
             this.communicationLayer = communicationLayer;
         }
@@ -20,12 +20,6 @@ namespace NeuralNetworkMaster
             return JsonConvert.DeserializeObject<NeuralNetworkMasterParameters>(communicationLayer.ReceiveData());
 
         }
-
-
-
-
-
-
 
         public void SendInitialData(NeuralNetworkSlaveParameters neuralNetworkSlaveParameters ,String X,String y,String[] Theta)
         {

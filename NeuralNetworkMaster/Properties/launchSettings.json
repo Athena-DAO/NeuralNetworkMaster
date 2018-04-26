@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NeuralNetworkMaster": {
+      "commandName": "Project",
+      "commandLineArgs": "url 1234"
+    }
+  }
+}
