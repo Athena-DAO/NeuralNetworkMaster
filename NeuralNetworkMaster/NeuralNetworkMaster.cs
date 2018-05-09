@@ -143,31 +143,59 @@ namespace NeuralNetworkMaster
                 PipelineId = PipelineId
             };
             communicationLayer.SendCommunicationServerParameters();
-            IPEndPoint remoteEndPoint = communicationLayer.GetPeerIPEndPoint();
-            IPEndPoint localEndPoint = communicationLayer.server.client.Client.LocalEndPoint as IPEndPoint;
-            communicationLayer.server.Close();
+            var response = communicationLayer.GetCommunicationResonse();
 
-            TcpHole tcpHole = new TcpHole();
-            TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, remoteEndPoint);
-            CommunicationModule communicationModule = new CommunicationModule(tcpClient);
-           
-            try
+            bool P2pSuccess = false;
+            if (response.P2P)
+            { 
+                    IPEndPoint remoteEndPoint = communicationLayer.GetIpEndPoint(response.EndPoint);
+                    IPEndPoint localEndPoint = communicationLayer.server.client.Client.LocalEndPoint as IPEndPoint;
+                   communicationLayer.server.Close();
+
+                try
+                { 
+                    TcpHole tcpHole = new TcpHole();
+                    TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, remoteEndPoint);
+                    if (!tcpHole.Success)
+                    {
+                        throw new Exception("Hole Punching Failed");
+                    }
+                    CommunicationModule communicationModule = new CommunicationModule(tcpClient);
+                    MiddleLayer middleLayer = new MiddleLayer{CommunicationModule=communicationModule, P2P = true};
+
+
+                    var slaveParameters = BuildSlaveParameters(slaveNumber);
+                    middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
+                    ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength);
+                    P2pSuccess = true;
+                    communicationModule.Close();
+                    
+                }catch (Exception E)
+                {
+
+                    if (E.Message != "Hole Punching Failed")
+                        throw;
+                }
+            }
+
+            if(!P2pSuccess)
             {
-                MiddleLayer middleLayer = new MiddleLayer(communicationModule);
-                var slaveParameters= BuildSlaveParameters(slaveNumber);
+                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "m2s" };
+                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "s2m" };
+
+                MiddleLayer middleLayer = new MiddleLayer()
+                {
+                    CommunicationRabbitMqM2s = communicationM2s,
+                    CommunicationRabbitMqS2M = communicationS2m
+                };
+
+                var slaveParameters = BuildSlaveParameters(slaveNumber);
                 middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
-                ThetaSlaves[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
+                ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength);
                 
-            }
-            catch (Exception E)
-            {
-                Console.WriteLine("Exception {0}", E);
-            }
-            finally
-            {
-                communicationModule.Close();
-            }
+                
 
+            }
         }
         
         private NeuralNetworkSlaveParameters BuildSlaveParameters(int slaveNumber)

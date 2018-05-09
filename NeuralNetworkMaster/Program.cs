@@ -40,13 +40,13 @@ namespace NeuralNetworkMaster
             NeuralNetworkMaster master = new NeuralNetworkMaster
             {
                 PipelineId = pipelineId,
-                NumberOfSlaves = 3,
+                NumberOfSlaves = 1,
                 InputLayerSize = 400,
                 HiddenLayerSize = 25,
                 HiddenLayerLength = 1,
                 OutputLayerSize = 10,
                 Lambda = 3,
-                Epoch = 50
+                Epoch = 1000
                 
             };
 

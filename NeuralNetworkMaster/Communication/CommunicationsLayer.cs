@@ -5,6 +5,8 @@ using Newtonsoft.Json;
 using NeuralNetworkMaster.Model;
 using System.Net;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace NeuralNetworkMaster.Communication
 {
@@ -12,11 +14,19 @@ namespace NeuralNetworkMaster.Communication
     {
         public CommunicationModule server { get; set; }
         public string PipelineId { get; set; }
+
+        public IConfiguration Configuration { get; set; }
         public CommunicationsLayer()
         {
-            server = new CommunicationModule("192.168.1.2", 6000);
+            BuildConfiguration();
+            server = new CommunicationModule($"{Configuration["Ip-CommunicationServer"]}", int.Parse($"{Configuration["Port-CommunicationServer"]}"));
         }
 
+        public void BuildConfiguration()
+        {
+            var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json");
+            Configuration = builder.Build();
+        }
         public void SendCommunicationServerParameters()
         {
             server.SendData(JsonConvert.SerializeObject(new CommunicationServerParameters()
@@ -26,6 +36,12 @@ namespace NeuralNetworkMaster.Communication
             }));
 
         }
+
+        public CommunicationResponse GetCommunicationResonse()
+        {
+            return JsonConvert.DeserializeObject<CommunicationResponse>(server.ReceiveData());
+        }
+
 
         public IPEndPoint GetPeerIPEndPoint()
         {
