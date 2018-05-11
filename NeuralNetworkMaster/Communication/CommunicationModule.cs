@@ -26,7 +26,7 @@ namespace NeuralNetworkMaster.Communication
                 }
             }
             else
-                CommunicationRabbitMqS2M.Publish(message);
+                CommunicationRabbitMqM2S.Publish(message);
         }
 
         public string ReceiveData(int size=0)
@@ -47,7 +47,7 @@ namespace NeuralNetworkMaster.Communication
                 }
             }
             else
-                return CommunicationRabbitMqM2S.Consume();
+                return CommunicationRabbitMqS2M.Consume();
 
         }
 

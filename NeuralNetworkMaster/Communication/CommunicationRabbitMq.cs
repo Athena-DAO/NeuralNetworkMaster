@@ -1,94 +1,93 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace NeuralNetworkMaster.Communication
 {
-    class CommunicationRabbitMq
+    internal class CommunicationRabbitMq
     {
-        public string QueueName { get; set; }
-        private BlockingCollection<string> respQueue;
+        private string QueueName;
+        private ConnectionFactory factory;
+        private IConnection connection;
+        private IModel channel;
+
+        private List<string> Messages;
+        private Object messageLock;
+
+        public CommunicationRabbitMq(string queueName)
+        {
+            QueueName = queueName;
+            messageLock = new object();
+            factory = new ConnectionFactory() { HostName = "localhost" };
+            connection = factory.CreateConnection();
+            channel = connection.CreateModel();
+            channel.QueueDeclare(queue: QueueName,
+                        durable: false,
+                        exclusive: false,
+                        autoDelete: false,
+                        arguments: null);
+            channel.BasicQos(0, 1, false);
+        }
 
         public void Publish(string message)
         {
+            var body = Encoding.UTF8.GetBytes(message);
 
-            var factory = new ConnectionFactory() { HostName = "localhost" };
+            channel.BasicPublish(exchange: "",
+                routingKey: QueueName,
+                basicProperties: null,
+                body: body);
 
-            using (var connection = factory.CreateConnection())
+            //Console.WriteLine("[x] Sent {0}", message);
+        }
+
+        public void StartConsumer()
+        {
+            Messages = new List<string>();
+            var consumer = new EventingBasicConsumer(channel);
+
+            consumer.Received += (model, ea) =>
             {
-
-                using (var channel = connection.CreateModel())
+                var body = ea.Body;
+                var message = Encoding.UTF8.GetString(body);
+                lock (messageLock)
                 {
-
-                    channel.QueueDeclare(queue: QueueName,
-                        durable: false,
-                        exclusive: false,
-                        autoDelete: false,
-                        arguments: null);
-
-
-                    
-
-                    var body = Encoding.UTF8.GetBytes(message);
-
-
-                    channel.BasicPublish(exchange: "",
-                        routingKey: QueueName,
-                        basicProperties: null,
-                        body: body);
-
-
-
-                  //  Console.WriteLine("[x] Sent {0}", message);
+                    Messages.Add(message);
+                    Monitor.Pulse(messageLock);
 
                 }
+                channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+            };
 
-
-            }
-        
+            channel.BasicConsume(queue: QueueName,
+                autoAck: false,
+                consumer: consumer);
         }
+
         public string Consume()
         {
-
-            respQueue = new BlockingCollection<string>();
-            var factory = new ConnectionFactory() { HostName = "localhost" };
-
-
-            using (var connection = factory.CreateConnection())
+            string message;
+            lock (messageLock)
             {
-                string message = "";
-                using (var channel = connection.CreateModel())
+                while (Messages.Count == 0)
                 {
-
-                    channel.QueueDeclare(queue: QueueName,
-                        durable: false,
-                        exclusive: false,
-                        autoDelete: false,
-                        arguments: null);
-
-
-                    var consumer = new EventingBasicConsumer(channel);
-
-
-                    consumer.Received += (model, ea) =>
-                    {
-                        var body = ea.Body;
-                        message = Encoding.UTF8.GetString(body);
-                        respQueue.Add(message);
-                    //    Console.WriteLine(" [x] Received {0}", message);
-                    };
-
-                    channel.BasicConsume(queue: QueueName,
-                        autoAck: true,
-                        consumer: consumer);
-
-                    return respQueue.Take();
-
+                    Monitor.Pulse(messageLock);
+                    Monitor.Wait(messageLock);
                 }
+                message = Messages[0];
+                Messages.RemoveAt(0);
             }
+            return message;
+        }
+
+        public void Close()
+        {
+            channel.QueueDelete(QueueName, false, false);
+            channel.Close();
+            connection.Close();
         }
     }
 }

@@ -83,6 +83,7 @@ namespace NeuralNetworkMaster
             y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//Y_value.csv", NumberOfSlaves);
 
             LogService = new LogService(NumberOfSlaves);
+            LogService.StartLogService();
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
             {
@@ -95,7 +96,7 @@ namespace NeuralNetworkMaster
             {
                 thread.Join();
             }
-
+            LogService.StopLogService();
             ComputeThetaAvereage();
 
             //Retrain();
@@ -192,9 +193,9 @@ namespace NeuralNetworkMaster
 
             if(!P2pSuccess)
             {
-                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "m2s" };
-                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "s2m" };
-
+                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "m2s" );
+                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "s2m" );
+                communicationS2m.StartConsumer();
                 middleLayer = new MiddleLayer()
                 {
                     CommunicationModule = new CommunicationModule()
@@ -215,7 +216,7 @@ namespace NeuralNetworkMaster
                 string data = middleLayer.CommunicationModule.ReceiveData();
                 try
                 {
-                    JsonConvert.DeserializeObject<List<Log>>(data);
+                    LogService.AddLog(JsonConvert.DeserializeObject<List<Log>>(data), slaveNumber);
                 }
                 catch
                 {
