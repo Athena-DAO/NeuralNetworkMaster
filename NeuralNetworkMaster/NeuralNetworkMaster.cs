@@ -151,7 +151,6 @@ namespace NeuralNetworkMaster
             };
             communicationServer.SendCommunicationServerParameters();
             var response = communicationServer.GetCommunicationResonse();
-
             bool P2pSuccess = false;
             MiddleLayer middleLayer = null;
             if (response.P2P)
@@ -169,6 +168,7 @@ namespace NeuralNetworkMaster
                         throw new Exception("Hole Punching Failed");
                     }
                     CommunicationTcp communicationTcp = new CommunicationTcp(tcpClient);
+                    
                     middleLayer = new MiddleLayer()
                     {
                         CommunicationModule = new CommunicationModule()
@@ -176,12 +176,9 @@ namespace NeuralNetworkMaster
                             CommunicationTcp = communicationTcp,
                             P2P = true
                         }
-                    };
-
-
-                    
+                    }; 
                     P2pSuccess = true;
-                    communicationTcp.Close();
+                   
                     
                 }catch (Exception E)
                 {

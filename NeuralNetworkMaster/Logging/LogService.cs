@@ -81,10 +81,11 @@ namespace NeuralNetworkMaster.Logging
         public void SendLogs()
         {
             double averageCost;
+            double sumCost = 0;
+            double count = 0;
             lock (infoLogsLock)
             {
-                double sumCost = 0;
-                double count = 0;
+
 
                 for (int i = 0; i < InfoLogs.Length; i++)
                 {
@@ -109,9 +110,10 @@ namespace NeuralNetworkMaster.Logging
                 };
                 logBuilder.Clear();
             }
-
-            Console.WriteLine("Average Cost {0}", averageCost);
-
+            if (count > 0)
+            {
+                Console.WriteLine("Average Cost {0}", averageCost);
+            }
         }
     }
 }

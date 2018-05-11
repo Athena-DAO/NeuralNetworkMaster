@@ -27,7 +27,7 @@ namespace NeuralNetworkMaster
         }
         public string ReceiveTheta(int size)
         {
-            return CommunicationModule.ReceiveData();
+            return CommunicationModule.ReceiveData(size);
         }
 
         public Matrix<double>[] BuildTheta(string thetaJson, int hiddenLayerLength)
