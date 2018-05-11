@@ -11,6 +11,7 @@ using System.Net;
 using NeuralNetworkMaster.Communication;
 using NeuralNetworkMaster.Model;
 using NeuralNetworkMaster.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace NeuralNetworkMaster
 {
@@ -24,6 +25,7 @@ namespace NeuralNetworkMaster
         public int OutputLayerSize { get; set; }
         public double Lambda { get; set; }
         public int Epoch { get; set; }
+        public IConfiguration Configuration { get; set; }
 
         public LogService LogService { get; set; }
         public String[] X_value;
@@ -34,8 +36,6 @@ namespace NeuralNetworkMaster
         public string[] Theta;
         public Matrix<double>[] AverageTheta;
 
-        private double[] Cost;
-        private int[] iteartionNumber;
         public NeuralNetworkMaster()
         {
             
@@ -145,20 +145,20 @@ namespace NeuralNetworkMaster
         */
 
 
-            CommunicationsServer communicationLayer = new CommunicationsServer()
+            CommunicationsServer communicationServer = new CommunicationsServer(Configuration)
             {
                 PipelineId = PipelineId
             };
-            communicationLayer.SendCommunicationServerParameters();
-            var response = communicationLayer.GetCommunicationResonse();
+            communicationServer.SendCommunicationServerParameters();
+            var response = communicationServer.GetCommunicationResonse();
 
             bool P2pSuccess = false;
             MiddleLayer middleLayer = null;
             if (response.P2P)
             { 
-                    IPEndPoint remoteEndPoint = communicationLayer.GetIpEndPoint(response.EndPoint);
-                    IPEndPoint localEndPoint = communicationLayer.server.client.Client.LocalEndPoint as IPEndPoint;
-                   communicationLayer.server.Close();
+                    IPEndPoint remoteEndPoint = communicationServer.GetIpEndPoint(response.EndPoint);
+                    IPEndPoint localEndPoint = communicationServer.server.client.Client.LocalEndPoint as IPEndPoint;
+                   communicationServer.server.Close();
 
                 try
                 { 
@@ -222,17 +222,25 @@ namespace NeuralNetworkMaster
                 {
                     try
                     {
-                        thetaSize = int.Parse(data);
-                        ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength, thetaSize);
+                        if (middleLayer.CommunicationModule.P2P)
+                        {
+                            thetaSize = int.Parse(data);
+                            ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(middleLayer.ReceiveTheta(thetaSize), HiddenLayerLength);
+                        }
+                        else
+                        {
+                            ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(data, HiddenLayerLength);
+                        }
                         isLog = false;
                     }
-                    catch
+                    catch( Exception e)
                     {
                         throw;
                     }
                     
                 }
             }
+            middleLayer.CommunicationModule.Close();
         }
         
         private NeuralNetworkSlaveParameters BuildSlaveParameters(int slaveNumber)

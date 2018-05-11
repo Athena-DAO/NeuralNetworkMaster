@@ -15,18 +15,13 @@ namespace NeuralNetworkMaster.Communication
         public CommunicationTcp server { get; set; }
         public string PipelineId { get; set; }
 
-        public IConfiguration Configuration { get; set; }
-        public CommunicationsServer()
+        
+        public CommunicationsServer(IConfiguration Configuration)
         {
-            BuildConfiguration();
-            server = new CommunicationTcp($"{Configuration["Ip-CommunicationServer"]}", int.Parse($"{Configuration["Port-CommunicationServer"]}"));
+            server = new CommunicationTcp($"{Configuration["ip-communication-server"]}", int.Parse($"{Configuration["port-communication-server"]}"));
         }
 
-        public void BuildConfiguration()
-        {
-            var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json");
-            Configuration = builder.Build();
-        }
+       
         public void SendCommunicationServerParameters()
         {
             server.SendData(JsonConvert.SerializeObject(new CommunicationServerParameters()

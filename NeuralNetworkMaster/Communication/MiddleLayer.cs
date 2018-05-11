@@ -24,52 +24,14 @@ namespace NeuralNetworkMaster
                 for (int i = 0; i < Theta.Length; i++)
                     CommunicationModule.SendData(Theta[i],true);
             }
-
-            /*
-            if (P2P)
-            {
-                
-                CommunicationTcp.SendData(slaveJson);
-
-                CommunicationTcp.SendDataSet(X);
-                CommunicationTcp.SendDataSet(y);
-
-                if (!neuralNetworkSlaveParameters.IsThetaNull)
-                {
-                    for (int i = 0; i < Theta.Length; i++)
-                        CommunicationTcp.SendDataSet(Theta[i]);
-                }
-
-            }else
-            {
-                CommunicationRabbitMqM2s.Publish(slaveJson);
-                CommunicationRabbitMqM2s.Publish(X);
-                CommunicationRabbitMqM2s.Publish(y);
-                if (!neuralNetworkSlaveParameters.IsThetaNull)
-                {
-                    for (int i = 0; i < Theta.Length; i++)
-                        CommunicationRabbitMqM2s.Publish(Theta[i]);
-                }
-            }
-            */
+        }
+        public string ReceiveTheta(int size)
+        {
+            return CommunicationModule.ReceiveData();
         }
 
-        public Matrix<double>[] BuildTheta(int hiddenLayerLength,int size)
+        public Matrix<double>[] BuildTheta(string thetaJson, int hiddenLayerLength)
         {
-            string thetaJson = CommunicationModule.ReceiveData(size);
-
-            /*
-            if (P2P)
-            {
-                var thetaSize = int.Parse(CommunicationTcp.ReceiveData());
-                thetaJson = CommunicationTcp.ReceiveData(thetaSize);
-                
-            }
-            else
-            {
-                thetaJson = CommunicationRabbitMqS2M.Consume(); 
-            }
-            */
             var theta = JsonConvert.DeserializeObject<double[][,]>(thetaJson);
             var thetaMatrix = new Matrix<double>[hiddenLayerLength + 1];
             for (int i = 0; i < theta.Length; i++)

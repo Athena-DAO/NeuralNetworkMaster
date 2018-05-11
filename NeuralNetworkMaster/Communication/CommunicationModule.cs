@@ -51,5 +51,16 @@ namespace NeuralNetworkMaster.Communication
 
         }
 
+        public void Close()
+        {
+            if (P2P)
+                CommunicationTcp.Close();
+            else
+            {
+                CommunicationRabbitMqM2S.Close();
+                CommunicationRabbitMqS2M.Close();
+            }
+        }
+
     }
 }

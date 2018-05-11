@@ -1,4 +1,5 @@
-﻿using NeuralNetworkMaster.Model;
+﻿using Microsoft.Extensions.Configuration;
+using NeuralNetworkMaster.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,8 +13,10 @@ namespace NeuralNetworkMaster.Logging
         private Object infoLogsLock;
         private Object logBuilderLock;
         public List<InfoLog>[] InfoLogs { get; set; }
+        public IConfiguration Configuration { get; set; }
+         
         private StringBuilder logBuilder;
-        private double averageCost;
+
         private bool stopService;
 
         public LogService(int numberOfSlaves)

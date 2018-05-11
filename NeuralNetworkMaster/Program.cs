@@ -6,18 +6,23 @@ using System.Text;
 using System.Threading;
 using System.Net.Http;
 using System.Net;
+using Microsoft.Extensions.Configuration;
 
 namespace NeuralNetworkMaster
 {
     class Program
     {
-
+        public static IConfiguration BuildConfiguration()
+        {
+            var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json");
+            return builder.Build();
+        }
         static void Main(string[] args)
         {
             string baseUrl = args[0];
             string pipelineId = args[1];
 
-            
+            IConfiguration Configuration = BuildConfiguration();
             /* 
              * GET parameters from api end point 
              * 
@@ -46,7 +51,8 @@ namespace NeuralNetworkMaster
                 HiddenLayerLength = 1,
                 OutputLayerSize = 10,
                 Lambda = 3,
-                Epoch = 1000
+                Epoch = 50,
+                Configuration = Configuration
                 
             };
 
