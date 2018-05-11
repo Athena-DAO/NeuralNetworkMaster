@@ -19,10 +19,17 @@ namespace NeuralNetworkMaster
 
         }
 
-        public void DownloadFile(String fileName)
+        public void DownloadFile(string fileName)
         {
             client.Connect();
             client.DownloadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName);
+            client.Disconnect();
+        }
+
+        public void UploadFile(string fileName)
+        {
+            client.Connect();
+            client.UploadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName);
             client.Disconnect();
         }
     }
