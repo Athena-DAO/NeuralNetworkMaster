@@ -10,34 +10,34 @@ namespace NeuralNetworkMaster
     class MiddleLayer
     {
         public CommunicationModule CommunicationModule { get; set; }
-        public CommunicationRabbitMq CommunicationRabbitMqM2s { get; set; }
-        public CommunicationRabbitMq CommunicationRabbitMqS2M { get; set; }
-        public bool P2P { get; set; }
 
-
-
-
-        public NeuralNetworkMasterParameters GetInitialData()
-        {
-            return JsonConvert.DeserializeObject<NeuralNetworkMasterParameters>(CommunicationModule.ReceiveData());
-
-        }
 
         public void SendInitialData(NeuralNetworkSlaveParameters neuralNetworkSlaveParameters ,String X,String y,String[] Theta)
         {
             string slaveJson = JsonConvert.SerializeObject(neuralNetworkSlaveParameters);
+
+            CommunicationModule.SendData(slaveJson, false);
+            CommunicationModule.SendData(X, true);
+            CommunicationModule.SendData(y, true);
+            if (!neuralNetworkSlaveParameters.IsThetaNull)
+            {
+                for (int i = 0; i < Theta.Length; i++)
+                    CommunicationModule.SendData(Theta[i],true);
+            }
+
+            /*
             if (P2P)
             {
                 
-                CommunicationModule.SendData(slaveJson);
+                CommunicationTcp.SendData(slaveJson);
 
-                CommunicationModule.SendDataSet(X);
-                CommunicationModule.SendDataSet(y);
+                CommunicationTcp.SendDataSet(X);
+                CommunicationTcp.SendDataSet(y);
 
                 if (!neuralNetworkSlaveParameters.IsThetaNull)
                 {
                     for (int i = 0; i < Theta.Length; i++)
-                        CommunicationModule.SendDataSet(Theta[i]);
+                        CommunicationTcp.SendDataSet(Theta[i]);
                 }
 
             }else
@@ -51,22 +51,25 @@ namespace NeuralNetworkMaster
                         CommunicationRabbitMqM2s.Publish(Theta[i]);
                 }
             }
+            */
         }
 
-        public Matrix<double>[] BuildTheta(int hiddenLayerLength)
+        public Matrix<double>[] BuildTheta(int hiddenLayerLength,int size)
         {
-            string thetaJson;
+            string thetaJson = CommunicationModule.ReceiveData(size);
+
+            /*
             if (P2P)
             {
-                var thetaSize = int.Parse(CommunicationModule.ReceiveData());
-                thetaJson = CommunicationModule.ReceiveData(thetaSize);
+                var thetaSize = int.Parse(CommunicationTcp.ReceiveData());
+                thetaJson = CommunicationTcp.ReceiveData(thetaSize);
                 
             }
             else
             {
                 thetaJson = CommunicationRabbitMqS2M.Consume(); 
             }
-
+            */
             var theta = JsonConvert.DeserializeObject<double[][,]>(thetaJson);
             var thetaMatrix = new Matrix<double>[hiddenLayerLength + 1];
             for (int i = 0; i < theta.Length; i++)

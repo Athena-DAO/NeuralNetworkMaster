@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using NeuralNetworkMaster.Communication;
+using NeuralNetworkMaster.Model;
+using NeuralNetworkMaster.Logging;
 
 namespace NeuralNetworkMaster
 {
@@ -23,6 +25,7 @@ namespace NeuralNetworkMaster
         public double Lambda { get; set; }
         public int Epoch { get; set; }
 
+        public LogService LogService { get; set; }
         public String[] X_value;
         public String[] y_value;
         public int []TrainingSizes;
@@ -31,6 +34,8 @@ namespace NeuralNetworkMaster
         public string[] Theta;
         public Matrix<double>[] AverageTheta;
 
+        private double[] Cost;
+        private int[] iteartionNumber;
         public NeuralNetworkMaster()
         {
             
@@ -77,6 +82,7 @@ namespace NeuralNetworkMaster
             X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//X_value.csv", NumberOfSlaves);
             y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//Y_value.csv", NumberOfSlaves);
 
+            LogService = new LogService(NumberOfSlaves);
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
             {
@@ -138,7 +144,7 @@ namespace NeuralNetworkMaster
         */
 
 
-            CommunicationsLayer communicationLayer = new CommunicationsLayer()
+            CommunicationsServer communicationLayer = new CommunicationsServer()
             {
                 PipelineId = PipelineId
             };
@@ -146,6 +152,7 @@ namespace NeuralNetworkMaster
             var response = communicationLayer.GetCommunicationResonse();
 
             bool P2pSuccess = false;
+            MiddleLayer middleLayer = null;
             if (response.P2P)
             { 
                     IPEndPoint remoteEndPoint = communicationLayer.GetIpEndPoint(response.EndPoint);
@@ -160,15 +167,20 @@ namespace NeuralNetworkMaster
                     {
                         throw new Exception("Hole Punching Failed");
                     }
-                    CommunicationModule communicationModule = new CommunicationModule(tcpClient);
-                    MiddleLayer middleLayer = new MiddleLayer{CommunicationModule=communicationModule, P2P = true};
+                    CommunicationTcp communicationTcp = new CommunicationTcp(tcpClient);
+                    middleLayer = new MiddleLayer()
+                    {
+                        CommunicationModule = new CommunicationModule()
+                        {
+                            CommunicationTcp = communicationTcp,
+                            P2P = true
+                        }
+                    };
 
 
-                    var slaveParameters = BuildSlaveParameters(slaveNumber);
-                    middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
-                    ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength);
+                    
                     P2pSuccess = true;
-                    communicationModule.Close();
+                    communicationTcp.Close();
                     
                 }catch (Exception E)
                 {
@@ -183,18 +195,42 @@ namespace NeuralNetworkMaster
                 CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "m2s" };
                 CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq() { QueueName = PipelineId + "_" + response.QueueNumber + "s2m" };
 
-                MiddleLayer middleLayer = new MiddleLayer()
+                middleLayer = new MiddleLayer()
                 {
-                    CommunicationRabbitMqM2s = communicationM2s,
-                    CommunicationRabbitMqS2M = communicationS2m
+                    CommunicationModule = new CommunicationModule()
+                    {
+                        CommunicationRabbitMqM2S = communicationM2s,
+                        CommunicationRabbitMqS2M = communicationS2m,
+                        P2P =false
+                    }
                 };
+            }
 
-                var slaveParameters = BuildSlaveParameters(slaveNumber);
-                middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
-                ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength);
-                
-                
-
+            var slaveParameters = BuildSlaveParameters(slaveNumber);
+            middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
+            int thetaSize=0;
+            bool isLog = true;
+            while (isLog)
+            {
+                string data = middleLayer.CommunicationModule.ReceiveData();
+                try
+                {
+                    JsonConvert.DeserializeObject<List<Log>>(data);
+                }
+                catch
+                {
+                    try
+                    {
+                        thetaSize = int.Parse(data);
+                        ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(HiddenLayerLength, thetaSize);
+                        isLog = false;
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                    
+                }
             }
         }
         
