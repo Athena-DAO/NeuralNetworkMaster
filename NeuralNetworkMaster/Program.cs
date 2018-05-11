@@ -51,7 +51,7 @@ namespace NeuralNetworkMaster
                 HiddenLayerLength = int.Parse(masterParameters["HiddenLayerLength"]),
                 OutputLayerSize = int.Parse(masterParameters["OutputLayerSize"]),
                 Lambda = int.Parse(masterParameters["Lambda"]),
-                Epoch = 50
+                Epoch = int.Parse(masterParameters["Epoch"])
             };
             
             master.Train();
