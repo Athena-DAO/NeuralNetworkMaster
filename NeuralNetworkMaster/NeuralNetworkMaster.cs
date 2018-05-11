@@ -25,8 +25,10 @@ namespace NeuralNetworkMaster
         public int OutputLayerSize { get; set; }
         public double Lambda { get; set; }
         public int Epoch { get; set; }
-        public IConfiguration Configuration { get; set; }
+        public string XFileName { get; set; }
+        public string YFileName { get; set; }
 
+        public IConfiguration Configuration { get; set; }
         public LogService LogService { get; set; }
         public String[] X_value;
         public String[] y_value;
@@ -79,8 +81,8 @@ namespace NeuralNetworkMaster
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//X_value.csv", NumberOfSlaves);
-            y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//Y_value.csv", NumberOfSlaves);
+            X_value = SplitDataSet(Directory.GetCurrentDirectory() + "//FileStore//" + XFileName, NumberOfSlaves);
+            y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//FileStore//" + YFileName, NumberOfSlaves);
 
             LogService = new LogService(NumberOfSlaves);
             LogService.StartLogService();

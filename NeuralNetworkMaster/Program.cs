@@ -35,7 +35,7 @@ namespace NeuralNetworkMaster
 
 
             Dictionary<string, string> masterParameters = BuildMasterParameters(pipeline.parameters);
-            FtpLayer ftpLayer = new FtpLayer(masterParameters["DataSetUrl"], "kishan", "lalit_123");
+            FtpLayer ftpLayer = new FtpLayer(masterParameters["FtpUrl"], "kishan", "lalit_123");
            
             ftpLayer.DownloadFile(masterParameters["XFileName"]);
             ftpLayer.DownloadFile(masterParameters["YFileName"]);
@@ -51,9 +51,10 @@ namespace NeuralNetworkMaster
                 HiddenLayerLength = int.Parse(masterParameters["HiddenLayerLength"]),
                 OutputLayerSize = int.Parse(masterParameters["OutputLayerSize"]),
                 Lambda = int.Parse(masterParameters["Lambda"]),
-                Epoch = int.Parse(masterParameters["Epoch"])
+                Epoch = int.Parse(masterParameters["Epoch"]),
+                XFileName = masterParameters["XFileName"],
+                YFileName = masterParameters["YFileName"]
             };
-            
             master.Train();
         }
 
