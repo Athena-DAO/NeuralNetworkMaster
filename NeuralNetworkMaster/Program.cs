@@ -2,18 +2,28 @@
 using System;
 using System.IO;
 using System.Net;
+
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace NeuralNetworkMaster
 {
     internal class Program
     {
-        private static void Main(string[] args)
+        public static IConfiguration BuildConfiguration()
+        {
+            var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json");
+            return builder.Build();
+        }
+
+        static void Main(string[] args)
         {
             string baseUrl = args[0];
             string pipelineId = args[1];
+            IConfiguration Configuration = BuildConfiguration();
+
             Credentials credentials = new Credentials
             {
                 UserName = "john.doe@gmail.com",
@@ -43,22 +53,7 @@ namespace NeuralNetworkMaster
                 Lambda = int.Parse(masterParameters["Lambda"]),
                 Epoch = 50
             };
-
-
-
-            /*
-            NeuralNetworkMaster master = new NeuralNetworkMaster
-            {
-                PipelineId = pipelineId,
-                NumberOfSlaves = 2,
-                InputLayerSize = 400,
-                HiddenLayerSize = 25,
-                HiddenLayerLength = 1,
-                OutputLayerSize = 10,
-                Lambda = 3,
-                Epoch = 50
-            };
-            */
+            
             master.Train();
         }
 

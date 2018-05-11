@@ -9,6 +9,9 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using NeuralNetworkMaster.Communication;
+using NeuralNetworkMaster.Model;
+using NeuralNetworkMaster.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace NeuralNetworkMaster
 {
@@ -22,9 +25,9 @@ namespace NeuralNetworkMaster
         public int OutputLayerSize { get; set; }
         public double Lambda { get; set; }
         public int Epoch { get; set; }
-        public string XFileName { get; set; }
-        public string YFileName { get; set; }
+        public IConfiguration Configuration { get; set; }
 
+        public LogService LogService { get; set; }
         public String[] X_value;
         public String[] y_value;
         public int []TrainingSizes;
@@ -76,9 +79,11 @@ namespace NeuralNetworkMaster
             ThetaSlaves = new Matrix<double>[NumberOfSlaves][];
             AverageTheta = new Matrix<double>[HiddenLayerLength + 1];
             TrainingSizes = new int[NumberOfSlaves];
-            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//FileStore//" + XFileName, NumberOfSlaves);
-            y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//FileStore//" + YFileName, NumberOfSlaves);
+            X_value = SplitDataSet(Directory.GetCurrentDirectory() +  "//X_value.csv", NumberOfSlaves);
+            y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//Y_value.csv", NumberOfSlaves);
 
+            LogService = new LogService(NumberOfSlaves);
+            LogService.StartLogService();
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)
             {
@@ -91,7 +96,7 @@ namespace NeuralNetworkMaster
             {
                 thread.Join();
             }
-
+            LogService.StopLogService();
             ComputeThetaAvereage();
 
             //Retrain();
@@ -115,61 +120,99 @@ namespace NeuralNetworkMaster
         */
         public void Service(int slaveNumber)
         {
-
-            /*
-        CommunicationModule clientForServer = new CommunicationModule("13.127.173.16", 6000);
-        IPEndPoint localEndPoint = clientForServer.client.Client.LocalEndPoint as IPEndPoint;
-
-        clientForServer.SendData(localEndPoint.ToString());
-        IPEndPoint peerLocalEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
-        IPEndPoint peerRemoteEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
-        clientForServer.Close();
-
-        Console.WriteLine("Remote Point {0}", peerRemoteEndPoint.ToString());
-
-        TcpHole tcpHole = new TcpHole();
-
-        TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, peerLocalEndPoint, peerRemoteEndPoint);
-        var clientForClient = new CommunicationLayer(tcpClient);
-
-        clientForClient.SendData("Hello world");
-        var str = clientForClient.ReceiveData();
-        Console.WriteLine("Received from remote device {0}", str);
-
-        Console.ReadLine();
-        */
-
-
-            CommunicationsLayer communicationLayer = new CommunicationsLayer()
+            CommunicationsServer communicationServer = new CommunicationsServer(Configuration)
             {
                 PipelineId = PipelineId
             };
-            communicationLayer.SendCommunicationServerParameters();
-            IPEndPoint remoteEndPoint = communicationLayer.GetPeerIPEndPoint();
-            IPEndPoint localEndPoint = communicationLayer.server.client.Client.LocalEndPoint as IPEndPoint;
-            communicationLayer.server.Close();
+            communicationServer.SendCommunicationServerParameters();
+            var response = communicationServer.GetCommunicationResonse();
+            bool P2pSuccess = false;
+            MiddleLayer middleLayer = null;
+            if (response.P2P)
+            { 
+                    IPEndPoint remoteEndPoint = communicationServer.GetIpEndPoint(response.EndPoint);
+                    IPEndPoint localEndPoint = communicationServer.server.client.Client.LocalEndPoint as IPEndPoint;
+                   communicationServer.server.Close();
 
-            TcpHole tcpHole = new TcpHole();
-            TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, remoteEndPoint);
-            CommunicationModule communicationModule = new CommunicationModule(tcpClient);
-           
-            try
-            {
-                MiddleLayer middleLayer = new MiddleLayer(communicationModule);
-                var slaveParameters= BuildSlaveParameters(slaveNumber);
-                middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
-                ThetaSlaves[slaveNumber]=middleLayer.BuildTheta(HiddenLayerLength);
-                
-            }
-            catch (Exception E)
-            {
-                Console.WriteLine("Exception {0}", E);
-            }
-            finally
-            {
-                communicationModule.Close();
+                try
+                { 
+                    TcpHole tcpHole = new TcpHole();
+                    TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, remoteEndPoint);
+                    if (!tcpHole.Success)
+                    {
+                        throw new Exception("Hole Punching Failed");
+                    }
+                    CommunicationTcp communicationTcp = new CommunicationTcp(tcpClient);
+                    
+                    middleLayer = new MiddleLayer()
+                    {
+                        CommunicationModule = new CommunicationModule()
+                        {
+                            CommunicationTcp = communicationTcp,
+                            P2P = true
+                        }
+                    }; 
+                    P2pSuccess = true;
+                   
+                    
+                }catch (Exception E)
+                {
+
+                    if (E.Message != "Hole Punching Failed")
+                        throw;
+                }
             }
 
+            if(!P2pSuccess)
+            {
+                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "m2s" );
+                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "s2m" );
+                communicationS2m.StartConsumer();
+                middleLayer = new MiddleLayer()
+                {
+                    CommunicationModule = new CommunicationModule()
+                    {
+                        CommunicationRabbitMqM2S = communicationM2s,
+                        CommunicationRabbitMqS2M = communicationS2m,
+                        P2P =false
+                    }
+                };
+            }
+
+            var slaveParameters = BuildSlaveParameters(slaveNumber);
+            middleLayer.SendInitialData(slaveParameters, X_value[slaveNumber], y_value[slaveNumber], Theta);
+            int thetaSize=0;
+            bool isLog = true;
+            while (isLog)
+            {
+                string data = middleLayer.CommunicationModule.ReceiveData();
+                try
+                {
+                    LogService.AddLog(JsonConvert.DeserializeObject<List<Log>>(data), slaveNumber);
+                }
+                catch
+                {
+                    try
+                    {
+                        if (middleLayer.CommunicationModule.P2P)
+                        {
+                            thetaSize = int.Parse(data);
+                            ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(middleLayer.ReceiveTheta(thetaSize), HiddenLayerLength);
+                        }
+                        else
+                        {
+                            ThetaSlaves[slaveNumber] = middleLayer.BuildTheta(data, HiddenLayerLength);
+                        }
+                        isLog = false;
+                    }
+                    catch( Exception e)
+                    {
+                        throw;
+                    }
+                    
+                }
+            }
+            middleLayer.CommunicationModule.Close();
         }
         
         private NeuralNetworkSlaveParameters BuildSlaveParameters(int slaveNumber)

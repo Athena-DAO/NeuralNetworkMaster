@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
+using NeuralNetworkMaster.Communication;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,39 +9,30 @@ namespace NeuralNetworkMaster
 {
     class MiddleLayer
     {
-        private CommunicationModule communicationLayer;
+        public CommunicationModule CommunicationModule { get; set; }
 
-        public MiddleLayer(CommunicationModule communicationLayer)
-        {
-            this.communicationLayer = communicationLayer;
-        }
-
-        public NeuralNetworkMasterParameters GetInitialData()
-        {
-            return JsonConvert.DeserializeObject<NeuralNetworkMasterParameters>(communicationLayer.ReceiveData());
-
-        }
 
         public void SendInitialData(NeuralNetworkSlaveParameters neuralNetworkSlaveParameters ,String X,String y,String[] Theta)
         {
-
             string slaveJson = JsonConvert.SerializeObject(neuralNetworkSlaveParameters);
-            communicationLayer.SendData(slaveJson);
 
-            communicationLayer.SendDataSet(X);
-            communicationLayer.SendDataSet(y);
-
-            if(!neuralNetworkSlaveParameters.IsThetaNull)
+            CommunicationModule.SendData(slaveJson, false);
+            CommunicationModule.SendData(X, true);
+            CommunicationModule.SendData(y, true);
+            if (!neuralNetworkSlaveParameters.IsThetaNull)
             {
                 for (int i = 0; i < Theta.Length; i++)
-                    communicationLayer.SendDataSet(Theta[i]);
+                    CommunicationModule.SendData(Theta[i],true);
             }
         }
-
-        public Matrix<double>[] BuildTheta(int hiddenLayerLength)
+        public string ReceiveTheta(int size)
         {
-            var thetaSize = int.Parse(communicationLayer.ReceiveData());
-            var theta = JsonConvert.DeserializeObject<double[][,]>(communicationLayer.ReceiveData(thetaSize));
+            return CommunicationModule.ReceiveData(size);
+        }
+
+        public Matrix<double>[] BuildTheta(string thetaJson, int hiddenLayerLength)
+        {
+            var theta = JsonConvert.DeserializeObject<double[][,]>(thetaJson);
             var thetaMatrix = new Matrix<double>[hiddenLayerLength + 1];
             for (int i = 0; i < theta.Length; i++)
                 thetaMatrix[i] = Matrix<double>.Build.Dense(theta[i].GetLength(0), theta[i].GetLength(1), (x, y) => (theta[i][x, y]));
