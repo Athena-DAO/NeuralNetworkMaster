@@ -120,31 +120,6 @@ namespace NeuralNetworkMaster
         */
         public void Service(int slaveNumber)
         {
-
-            /*
-        CommunicationModule clientForServer = new CommunicationModule("13.127.173.16", 6000);
-        IPEndPoint localEndPoint = clientForServer.client.Client.LocalEndPoint as IPEndPoint;
-
-        clientForServer.SendData(localEndPoint.ToString());
-        IPEndPoint peerLocalEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
-        IPEndPoint peerRemoteEndPoint = GetIpEndPoint(clientForServer.ReceiveData());
-        clientForServer.Close();
-
-        Console.WriteLine("Remote Point {0}", peerRemoteEndPoint.ToString());
-
-        TcpHole tcpHole = new TcpHole();
-
-        TcpClient tcpClient = tcpHole.PunchHole(localEndPoint, peerLocalEndPoint, peerRemoteEndPoint);
-        var clientForClient = new CommunicationLayer(tcpClient);
-
-        clientForClient.SendData("Hello world");
-        var str = clientForClient.ReceiveData();
-        Console.WriteLine("Received from remote device {0}", str);
-
-        Console.ReadLine();
-        */
-
-
             CommunicationsServer communicationServer = new CommunicationsServer(Configuration)
             {
                 PipelineId = PipelineId
