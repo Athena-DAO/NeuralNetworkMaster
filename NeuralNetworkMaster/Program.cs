@@ -20,7 +20,7 @@ namespace NeuralNetworkMaster
 
         static void Main(string[] args)
         {
-            string baseUrl = args[0];
+            string url = args[0];
             string pipelineId = args[1];
             IConfiguration Configuration = BuildConfiguration();
 
@@ -29,19 +29,26 @@ namespace NeuralNetworkMaster
                 UserName = "john.doe@gmail.com",
                 Password = "P@ssw0rd"
             };
+            WebHelper webHelper = new WebHelper()
+            {
+                Credentials = credentials,
+                PipelineId = pipelineId,
+                Url = url
+            };
 
-            string token = GetJWT( baseUrl + @"/Account/Login" , credentials);
-            Pipeline pipeline = GetPipeline(baseUrl,pipelineId, token);
+            webHelper.FetchJWT();
+            Pipeline pipeline = webHelper.GetPipeline();
 
 
             Dictionary<string, string> masterParameters = BuildMasterParameters(pipeline.parameters);
-            FtpLayer ftpLayer = new FtpLayer(masterParameters["FtpUrl"], "kishan", "lalit_123");
+            string ftpUrl = "ftp" + ":" + url.Split(':')[1];
+            FtpLayer ftpLayer = new FtpLayer(ftpUrl, "kishan", "athena_123");
            
             ftpLayer.DownloadFile(masterParameters["XFileName"]);
             ftpLayer.DownloadFile(masterParameters["YFileName"]);
 
-            
-      
+
+
             NeuralNetworkMaster master = new NeuralNetworkMaster
             {
                 PipelineId = pipelineId,
@@ -53,49 +60,11 @@ namespace NeuralNetworkMaster
                 Lambda = int.Parse(masterParameters["Lambda"]),
                 Epoch = int.Parse(masterParameters["Epoch"]),
                 XFileName = masterParameters["XFileName"],
-                YFileName = masterParameters["YFileName"]
+                YFileName = masterParameters["YFileName"],
+                Configuration = Configuration,
+                WebHelper = webHelper
             };
             master.Train();
-        }
-
-        private static string GetJWT(string url , Credentials credentials)
-        {
-            string jwt;
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create(url);
-            httpWebRequest.ContentType = "application/json";
-            httpWebRequest.Method = "POST";
-            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                string json = JsonConvert.SerializeObject(credentials);
-
-
-                streamWriter.Write(json);
-                streamWriter.Flush();
-                streamWriter.Close();
-            }
-            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-            {
-                jwt = streamReader.ReadToEnd();
-            }
-
-            return JsonConvert.DeserializeObject<Token>(jwt).token;
-        }
-
-        private static Pipeline GetPipeline(string baseUrl ,string pipelineId , string token)
-        {
-            string json;
-            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(baseUrl + @"/api/pipeline/" + pipelineId);
-            httpWebRequest.PreAuthenticate = true;
-            httpWebRequest.Headers.Add("Authorization", "Bearer " + token);
-            httpWebRequest.Accept = "application/json";
-
-            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-            {
-                json = streamReader.ReadToEnd();
-            }
-            return JsonConvert.DeserializeObject<Pipeline>(json);
         }
 
         private static Dictionary<string,string> BuildMasterParameters(List<PipelineParameters> parameters)

@@ -30,6 +30,7 @@ namespace NeuralNetworkMaster
 
         public IConfiguration Configuration { get; set; }
         public LogService LogService { get; set; }
+        public WebHelper WebHelper { get; set; }
         public String[] X_value;
         public String[] y_value;
         public int []TrainingSizes;
