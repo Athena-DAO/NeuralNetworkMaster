@@ -1,16 +1,12 @@
 ﻿using NeuralNetworkMaster.Model;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
 
 namespace NeuralNetworkMaster
 {
-    class WebHelper
+    internal class WebHelper
     {
-        
         public string Url { get; set; }
         public Credentials Credentials { get; set; }
         public string PipelineId { get; set; }
@@ -40,8 +36,41 @@ namespace NeuralNetworkMaster
 
         public Pipeline GetPipeline()
         {
-            string json;
-            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(Url + @"/api/pipeline/" + PipelineId);
+            string response = GetRequestWithJWT(@"/api/pipeline/" + PipelineId);
+            return JsonConvert.DeserializeObject<Pipeline>(response);
+        }
+
+        public CompleteDataSet GetCompleteDataSet(string datasetId)
+        {
+            string response = GetRequestWithJWT(@"/api/completeDataSets/" + datasetId);
+            return JsonConvert.DeserializeObject<CompleteDataSet>(response);
+        }
+        public void PostLog(string logMessage)
+        {
+            string json = JsonConvert.SerializeObject(new ApiEndPointLog()
+            {
+                PipelineId = PipelineId,
+                Log = logMessage
+            });
+            PostRequestWithJWT(Url + @"/api/pipeline/Logging" ,json);
+            
+        }
+
+        public void PostResult(string result)
+        {
+            string json = JsonConvert.SerializeObject(new ApiEndPointResult()
+            {
+                PipelineId = PipelineId,
+                Result = result
+            });
+            PostRequestWithJWT(Url + @"/api/pipeline/result", json);
+
+        }
+
+        private string GetRequestWithJWT(string endpoint)
+        {
+            string response;
+            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(Url + endpoint);
             httpWebRequest.PreAuthenticate = true;
             httpWebRequest.Headers.Add("Authorization", "Bearer " + Token);
             httpWebRequest.Accept = "application/json";
@@ -49,23 +78,35 @@ namespace NeuralNetworkMaster
             var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
             using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
             {
-                json = streamReader.ReadToEnd();
+                response = streamReader.ReadToEnd();
             }
-            return JsonConvert.DeserializeObject<Pipeline>(json);
+            return response;
+
         }
 
-        public void SendLog(string jsonLog)
+        private string PostRequestWithJWT(string endpoint, string message)
         {
-
-            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(Url + @"/api/pipeline/" + PipelineId);
-            httpWebRequest.ContentType = "application/json";
+            string response;
+            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(Url + endpoint);
+            httpWebRequest.PreAuthenticate = true;
+            httpWebRequest.Headers.Add("Authorization", "Bearer " + Token);
+            httpWebRequest.Accept = "application/json";
             httpWebRequest.Method = "POST";
+
             using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
             {
-                streamWriter.Write(jsonLog);
+                streamWriter.Write(message);
                 streamWriter.Flush();
                 streamWriter.Close();
             }
+
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                response = streamReader.ReadToEnd();
+            }
+            return response;
+
         }
     }
 }

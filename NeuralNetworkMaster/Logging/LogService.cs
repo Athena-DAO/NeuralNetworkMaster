@@ -66,6 +66,7 @@ namespace NeuralNetworkMaster.Logging
 
         public void StopLogService()
         {
+            SendLogs();
             stopService = true;
         }
 

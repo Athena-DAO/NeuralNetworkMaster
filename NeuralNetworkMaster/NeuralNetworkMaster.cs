@@ -108,7 +108,7 @@ namespace NeuralNetworkMaster
                 thread.Join();
             }
             LogService.StopLogService();
-            ComputeThetaAvereage();
+            ComputeAndSaveThetaAvereage();
 
             //Retrain();
             
@@ -227,9 +227,7 @@ namespace NeuralNetworkMaster
         }
         
         private NeuralNetworkSlaveParameters BuildSlaveParameters(int slaveNumber)
-        {
-
-                        
+        {        
             bool isThetaNull = (Theta == null ? true : false);
             int[] thetaSize = null;
 
@@ -259,7 +257,7 @@ namespace NeuralNetworkMaster
             };
         }
 
-        private void ComputeThetaAvereage()
+        private void ComputeAndSaveThetaAvereage()
         {
             for (int i = 0; i < (HiddenLayerLength + 1); i++)
             {
@@ -268,7 +266,7 @@ namespace NeuralNetworkMaster
                     AverageTheta[i] = AverageTheta[i] + ThetaSlaves[j][i];
 
                 AverageTheta[i] = AverageTheta[i] / NumberOfSlaves;
-                WriteCsv("Theta" + i + ".csv", AverageTheta[i]);
+                WriteCsv(Directory.GetCurrentDirectory() + "//FileStore//" + PipelineId + "_Theta_" + i , AverageTheta[i]);
             }
         }
     }

@@ -14,6 +14,7 @@ namespace NeuralNetworkMaster.Model
         public string description { get; set; }
         public int numberOfContainers { get; set; }
         public string result { get; set; }
+        public string dataSetId { get; set; }
         public List<PipelineParameters> parameters { get; set; }
     }
 }

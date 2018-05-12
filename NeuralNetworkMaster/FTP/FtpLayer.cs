@@ -22,14 +22,14 @@ namespace NeuralNetworkMaster
         public void DownloadFile(string fileName)
         {
             client.Connect();
-            client.DownloadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName);
+            client.DownloadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName + ".csv");
             client.Disconnect();
         }
 
         public void UploadFile(string fileName)
         {
             client.Connect();
-            client.UploadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName);
+            client.UploadFile(Directory.GetCurrentDirectory() + "//FileStore//" + fileName, "//" + fileName + ".csv");
             client.Disconnect();
         }
     }
