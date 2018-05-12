@@ -165,8 +165,8 @@ namespace NeuralNetworkMaster
 
             if(!P2pSuccess)
             {
-                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "m2s" );
-                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq(queueName : PipelineId + "_" + response.QueueNumber + "s2m" );
+                CommunicationRabbitMq communicationM2s = new CommunicationRabbitMq(queueName: PipelineId + "_" + response.QueueNumber + "m2s" ,Configuration: Configuration);
+                CommunicationRabbitMq communicationS2m = new CommunicationRabbitMq(queueName: PipelineId + "_" + response.QueueNumber + "s2m" , Configuration: Configuration);
                 communicationS2m.StartConsumer();
                 middleLayer = new MiddleLayer()
                 {
