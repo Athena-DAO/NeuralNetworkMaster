@@ -43,22 +43,30 @@ namespace NeuralNetworkMaster
 
         public String[] SplitDataSet(string path, int numberOfSlaves)
         {
-            FileAccess fileAccess = new FileAccess(path);
-            string[] dataSet = new string[numberOfSlaves];
-
-            int numberOfLines = (int)fileAccess.Lines / numberOfSlaves;
-            int numberOfLinesLastSlave = numberOfLines + fileAccess.Lines % numberOfSlaves;
-
-            fileAccess.OpenStream();
-            for (int i = 0; i < numberOfSlaves-1; i++)
+            string []dataSet = new string[numberOfSlaves];
+            StringBuilder[] dataSetBuilder = new StringBuilder[numberOfSlaves];
+            for(int j=0;j<numberOfSlaves;j++)
             {
-                dataSet[i] = fileAccess.ReadNextLines(numberOfLines);
-                TrainingSizes[i] = numberOfLines;
+                dataSetBuilder[j] = new StringBuilder();
+                TrainingSizes[j] = 0;
             }
 
-            dataSet[numberOfSlaves - 1] = fileAccess.ReadNextLines(numberOfLinesLastSlave) ;
-            TrainingSizes[NumberOfSlaves - 1] = numberOfLinesLastSlave;
-            fileAccess.CloseStream();
+            StreamReader stream = new StreamReader(path);
+            int i = 0;
+            
+            while (!stream.EndOfStream)
+            {
+                dataSetBuilder[i].AppendLine(stream.ReadLine());
+                TrainingSizes[i]++;
+                i = (i + 1) % numberOfSlaves;  
+            }
+            stream.Close();
+
+            for (int j = 0; j < numberOfSlaves; j++)
+            {
+                dataSetBuilder[j].Remove(dataSetBuilder[j].Length-1, 1);
+                dataSet[j] = dataSetBuilder[j].ToString();
+            }
             return dataSet;
         }
 
