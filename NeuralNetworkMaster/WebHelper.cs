@@ -51,7 +51,7 @@ namespace NeuralNetworkMaster
             string json = JsonConvert.SerializeObject(new ApiEndPointLog()
             {
                 PipelineId = PipelineId,
-                Log = logMessage
+                Log = logMessage + "|\n"
             });
             PostRequestWithJWT(@"/api/Logging" ,json);
             

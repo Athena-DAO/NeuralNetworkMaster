@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  neuralnetworkmaster:
+    image: neuralnetworkmaster
+    build:
+      context: .
+      dockerfile: NeuralNetworkMaster/Dockerfile
