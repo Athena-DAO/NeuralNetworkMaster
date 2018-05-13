@@ -61,7 +61,7 @@ namespace NeuralNetworkMaster
                 HiddenLayerLength = int.Parse(masterParameters["HiddenLayerLength"]),
                 OutputLayerSize = int.Parse(masterParameters["OutputLayerSize"]),
                 Lambda = int.Parse(masterParameters["Lambda"]),
-                Epoch = 100,//int.Parse(masterParameters["Epoch"]),
+                Epoch = 50,//int.Parse(masterParameters["Epoch"]),
                 XFileName = completeDataSet.xComponentId,
                 YFileName = completeDataSet.yComponentId,
                 Configuration = Configuration,

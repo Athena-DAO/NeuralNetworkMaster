@@ -1,5 +1,6 @@
 ﻿using NeuralNetworkMaster.Model;
 using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Net;
 
@@ -52,7 +53,7 @@ namespace NeuralNetworkMaster
                 PipelineId = PipelineId,
                 Log = logMessage
             });
-            PostRequestWithJWT(Url + @"/api/pipeline/Logging" ,json);
+            PostRequestWithJWT(@"/api/Logging" ,json);
             
         }
 
@@ -63,7 +64,7 @@ namespace NeuralNetworkMaster
                 PipelineId = PipelineId,
                 Result = result
             });
-            PostRequestWithJWT(Url + @"/api/pipeline/result", json);
+            PostRequestWithJWT(@"/api/pipeline/result", json);
 
         }
 
@@ -84,13 +85,13 @@ namespace NeuralNetworkMaster
 
         }
 
-        private string PostRequestWithJWT(string endpoint, string message)
+        private void PostRequestWithJWT(string endpoint, string message)
         {
             string response;
             HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(Url + endpoint);
             httpWebRequest.PreAuthenticate = true;
             httpWebRequest.Headers.Add("Authorization", "Bearer " + Token);
-            httpWebRequest.Accept = "application/json";
+            httpWebRequest.ContentType = "application/json";
             httpWebRequest.Method = "POST";
 
             using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
@@ -101,12 +102,10 @@ namespace NeuralNetworkMaster
             }
 
             var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            if(httpResponse.StatusCode !=HttpStatusCode.OK)
             {
-                response = streamReader.ReadToEnd();
+                Console.WriteLine("Post Unsuccessful");
             }
-            return response;
-
         }
     }
 }

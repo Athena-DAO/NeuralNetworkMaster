@@ -93,7 +93,10 @@ namespace NeuralNetworkMaster
             X_value = SplitDataSet(Directory.GetCurrentDirectory() + "//FileStore//" + XFileName, NumberOfSlaves);
             y_value = SplitDataSet(Directory.GetCurrentDirectory() + "//FileStore//" + YFileName, NumberOfSlaves);
 
-            LogService = new LogService(NumberOfSlaves);
+            LogService = new LogService(NumberOfSlaves) {
+                Configuration =Configuration,
+                webHelper = WebHelper
+            };
             LogService.StartLogService();
             var threads = new Thread[NumberOfSlaves];
             for (int i = 0; i < NumberOfSlaves; i++)

@@ -14,7 +14,7 @@ namespace NeuralNetworkMaster.Logging
         private Object logBuilderLock;
         public List<InfoLog>[] InfoLogs { get; set; }
         public IConfiguration Configuration { get; set; }
-         
+        public WebHelper webHelper { get; set; }
         private StringBuilder logBuilder;
 
         private bool stopService;
@@ -75,7 +75,7 @@ namespace NeuralNetworkMaster.Logging
             while (!stopService)
             {
                 SendLogs();
-                Thread.Sleep(5000);
+                Thread.Sleep(int.Parse($"{Configuration["log-reporting-time-interval"]}"));
             }
         }
 
@@ -114,6 +114,7 @@ namespace NeuralNetworkMaster.Logging
             if (count > 0)
             {
                 Console.WriteLine("Average Cost {0}", averageCost);
+                webHelper.PostLog(JsonConvert.SerializeObject(serverLog));
             }
         }
     }
