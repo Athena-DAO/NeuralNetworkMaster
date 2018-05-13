@@ -7,6 +7,7 @@ namespace NeuralNetworkMaster.Model
     class ServerLog
     {
         public double Cost { get; set; }
+        public int Iteration { get; set; }
         public string Log { get; set; }
     }
 }

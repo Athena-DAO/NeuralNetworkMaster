@@ -81,9 +81,11 @@ namespace NeuralNetworkMaster.Logging
 
         public void SendLogs()
         {
-            double averageCost;
+            double averageCost=0;
+            int averageIteration=0;
+            int sumIteration=0;
             double sumCost = 0;
-            double count = 0;
+            int count = 0;
             lock (infoLogsLock)
             {
 
@@ -94,11 +96,16 @@ namespace NeuralNetworkMaster.Logging
                     if ( length > 0)
                     {
                         sumCost += InfoLogs[i][length-1].Cost;
+                        sumIteration += InfoLogs[i][length - 1].Iteration;
                         count++;
                         InfoLogs[i].Clear();
                     }
                 }
-                averageCost = sumCost / count;
+                if (count != 0)
+                {
+                    averageCost = sumCost / count;
+                    averageIteration = sumIteration / count;
+                }
             }
 
             ServerLog serverLog;
@@ -107,6 +114,7 @@ namespace NeuralNetworkMaster.Logging
                 serverLog = new ServerLog()
                 {
                     Cost = averageCost,
+                    Iteration = averageIteration,
                     Log = logBuilder.ToString()
                 };
                 logBuilder.Clear();
@@ -114,6 +122,7 @@ namespace NeuralNetworkMaster.Logging
             if (count > 0)
             {
                 Console.WriteLine("Average Cost {0}", averageCost);
+                Console.WriteLine("Average Iteration {0}", averageIteration);
                 webHelper.PostLog(JsonConvert.SerializeObject(serverLog));
             }
         }
