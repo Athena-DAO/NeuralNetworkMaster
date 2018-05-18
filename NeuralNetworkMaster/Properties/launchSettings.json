@@ -2,7 +2,7 @@
   "profiles": {
     "NeuralNetworkMaster": {
       "commandName": "Project",
-      "commandLineArgs": "http://athena.a2hosted.com 8F9819FB-F718-4B39-A266-928014AED9AA"
+      "commandLineArgs": "http://athena.a2hosted.com 2D7C88F5-B774-4500-86F8-9BAFFF31AD44"
     }
   }
 }

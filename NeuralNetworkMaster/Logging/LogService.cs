@@ -46,7 +46,7 @@ namespace NeuralNetworkMaster.Logging
                     lock(logBuilderLock)
                     {
                         Console.WriteLine(string.Format("Node {0} : Iteration {1} Cost {2}", slaveNumber + 1, infoLog.Iteration, infoLog.Cost));
-                        logBuilder.Append(string.Format("Node {0} : Iteration {1} Cost {2}\\n\\n", slaveNumber + 1, infoLog.Iteration, infoLog.Cost));
+                        logBuilder.Append(string.Format("Node {0} : Iteration {1} Cost {2}", slaveNumber + 1, infoLog.Iteration, infoLog.Cost));
                     }
                 }
                 else
